@@ -1,0 +1,4 @@
+name: "sentence_transformers_token_text_splitter"
+
+text_splitter:
+  chunk_overlap: 50

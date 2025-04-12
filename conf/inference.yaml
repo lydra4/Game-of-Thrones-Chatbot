@@ -1,0 +1,31 @@
+embeddings:
+  embeddings_path: "./data/embeddings/semantic_chunker/all-MiniLM-L6-v2"
+  index_name: faiss_index_got
+  show_progress: True
+
+path_to_qa_prompt: "./data/inference/qa_prompt.txt"
+
+retrieve:
+  k: 5
+  search_type: "similarity"
+  reranker_model: ""
+  use_multiquery: False
+
+  multiquery:
+    include_original: True
+    path_to_multiquery_prompt: "./data/inference/multiquery_prompt.txt"
+
+llm:
+  model: "gpt-4o-mini"
+  temperature: 0.0
+  path_to_qns: "./data/inference/questions.txt"
+  path_to_ans: "./data/answers/answers.txt"
+
+retrieval:
+  chain_type: "stuff"
+  return_source_documents: True
+  verbose: False
+  max_tokens: 15_000
+
+gradio:
+  captions_path: "data/inference/ui_captions.txt"

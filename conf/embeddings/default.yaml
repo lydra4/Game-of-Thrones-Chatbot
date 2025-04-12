@@ -1,0 +1,7 @@
+embeddings_model:
+  model_name: "all-MiniLM-L6-v2"
+  show_progress: True
+
+embed_documents:
+  embeddings_path: "./data/embeddings/"
+  index_name: "faiss_index_got"
