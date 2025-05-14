@@ -43,8 +43,8 @@ class InferencePipeline:
 
         load_dotenv()
         self.langfuse = Langfuse(
-            secret_key=os.getenv("langfuse_secret_key"),
-            public_key=os.getenv("langfuse_public_key"),
+            secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
+            public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
             host=os.getenv("host"),
         )
         self.langfuse_handler = CallbackHandler()
@@ -175,7 +175,7 @@ class InferencePipeline:
 
         model = self.cfg.llm.model
         temperature = self.cfg.llm.temperature
-        api_key_env_var = "openai_api_key" if "gpt-" in model else "gemini_api_key"
+        api_key_env_var = "OPENAI_API_KEY" if "gpt-" in model else "GEMINI_API_KEY"
         api_key = os.getenv(api_key_env_var)
 
         if not api_key:
@@ -236,7 +236,7 @@ class InferencePipeline:
                 f"Wrapping retriever with reranker model: {self.cfg.retrieve.reranker_model}.\n"
             )
 
-            cohere_api_key = os.getenv("cohere_api_key")
+            cohere_api_key = os.getenv("COHERE_API_KEY")
             if not cohere_api_key:
                 self.logger.error("Cohere API key is missing.")
                 raise ValueError("Cohere API key is missing.")
