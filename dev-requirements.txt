@@ -1,4 +1,5 @@
-black
-pre-commit
-pylint
-ruff
+black==25.1.0
+pre-commit==4.2.0
+pylint==3.3.7
+ruff==0.11.9
+sphinx==8.2.3
