@@ -1,19 +1,39 @@
+# Default configuration sources to be merged.
+# `_self_` ensures the current config file is loaded.
+# `inference` and `embeddings: default` refer to other config files in the Hydra config group.
 defaults:
   - _self_
   - inference
   - embeddings: default
 
+# Whether to display progress bars/logs during execution
 show_progress: True
 
+# LLM model to be used for inference
 model: "gpt-4o-mini"
 
+# Timezone setting for timestamps in logs or outputs
 timezone: "Asia/Singapore"
+
+# Format to be used when printing datetime objects
 datetime_format: "%d/%m/%y %H:%M"
+
+# Path where evaluation metrics will be saved
 metric_path: "./logs/"
 
+# Evaluation metrics toggle section
 metrics:
+  # Whether to calculate answer relevancy between prediction and ground truth
   answer_relevancy: True
+
+  # Whether to measure precision of retrieved context chunks
   context_precision: True
+
+  # Whether to evaluate how much of the ground truth context was retrieved
   llm_context_recall: True
+
+  # Whether to assess whether the LLM output remains faithful to the provided context
   faithfulness: True
+
+  # Whether to assess factual correctness independently of the context (disabled here)
   factual_correctness: False
