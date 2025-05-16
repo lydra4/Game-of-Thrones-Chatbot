@@ -1,3 +1,10 @@
+"""
+EPUB Processing module.
+
+This module defines the EPUBProcessor class used to extract, clean, and preprocess text from EPUB files.
+It uses Apache Tika for content extraction and supports custom preprocessing rules via configuration.
+"""
+
 import logging
 import os
 import re
@@ -12,13 +19,13 @@ from tika import parser
 class EPUBProcessor(BaseLoader):
     """Processes EPUB files by extracting and cleaning text.
 
-    This class is responsible for reading EPUB files from a specified directory, extracting their text content,
-    and applying various preprocessing steps such as URL removal, non-alphanumeric filtering, stopword removal,
-    and lemmatization.
+    This class scans a directory for `.epub` files, extracts their text using Apache Tika,
+    and applies configurable preprocessing steps such as whitespace normalization,
+    URL removal, and filtering of non-alphanumeric characters.
 
     Attributes:
-        cfg (dict): Configuration dictionary containing preprocessing settings.
-        logger (logging.Logger, optional): Logger instance for logging messages. Defaults to None.
+        cfg (omegaconf.DictConfig): Configuration dictionary containing preprocessing settings.
+        logger (logging.Logger): Logger instance for logging messages.
     """
 
     def __init__(
@@ -28,7 +35,8 @@ class EPUBProcessor(BaseLoader):
 
         Args:
             cfg (omegaconf.dictconfig): Configuration dictionary containing preprocessing settings.
-            logger (logging.Logger, optional): Logger instance for logging messages. Defaults to None.
+            logger (Optional[logging.Logger], optional): Logger instance for logging messages.
+                If not provided, defaults to a logger with the module name.
         """
         self.cfg = cfg
         self.logger = logger or logging.getLogger(__name__)
@@ -36,15 +44,18 @@ class EPUBProcessor(BaseLoader):
     def _preprocess_text(self, text: str) -> str:
         """Cleans and preprocesses the extracted text.
 
-        This method applies a series of preprocessing steps to the raw text extracted from an EPUB file,
-        including URL removal, non-alphanumeric character filtering, whitespace normalization,
-        and consecutive non-alphanumeric character handling.
+        Applies a series of configurable preprocessing rules including:
+        - Whitespace normalization
+        - URL removal
+        - Non-alphanumeric filtering
+        - Consecutive character cleanup
+        - Newline normalization
 
         Args:
             text (str): Raw text extracted from an EPUB file.
 
         Returns:
-            str: The cleaned and preprocessed text.
+            str: Cleaned and preprocessed text.
         """
         text = re.sub(
             self.cfg.preprocessing.whitespace,
@@ -73,20 +84,17 @@ class EPUBProcessor(BaseLoader):
         return text
 
     def load(self) -> List[Document]:
-        """Loads and processes EPUB files from the specified directory.
+        """Loads and processes EPUB files from the configured directory.
 
-        This method scans the directory for EPUB files, extracts their content using the Tika parser,
-        preprocesses the text using `_preprocess_text`, and returns the cleaned text as LangChain `Document` objects.
-
-        Args:
-            None
+        Extracts text content from all `.epub` files in the given directory using Tika,
+        preprocesses the content, and returns a list of LangChain `Document` objects.
 
         Returns:
-            List[Document]: A list of LangChain `Document` objects containing extracted and cleaned text.
+            List[Document]: A list of documents containing the cleaned text and metadata.
 
         Raises:
-            FileNotFoundError: If the specified directory does not exist or contains no EPUB files.
-            ValueError: If no text is extracted from any EPUB file.
+            FileNotFoundError: If the directory is not found or contains no EPUB files.
+            ValueError: If no valid text is extracted from any EPUB file.
         """
 
         if not os.path.isdir(self.cfg.preprocessing.path):

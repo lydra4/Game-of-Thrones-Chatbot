@@ -1,24 +1,26 @@
+"""
+Inference module to run the inference pipeline.
+
+This module defines the main entry point for executing the InferencePipeline
+using configuration managed by Hydra. It handles logging setup, pipeline
+initialization, and triggering the inference execution.
+"""
+
 import logging
 import os
 
 import hydra
-
 from inference.inference_pipeline import InferencePipeline
 from utils.general_utils import setup_logging
 
 
 @hydra.main(version_base=None, config_path="../conf", config_name="inference.yaml")
 def main(cfg):
-    """
-    Main function for executing the inference pipeline.
-
-    This function:
-    - Sets up logging configuration.
-    - Initializes the `InferencePipeline` with the given configuration.
-    - Runs the inference process.
+    """Main function to set up logging and execute the inference pipeline.
 
     Args:
-        cfg: A Hydra configuration object containing all necessary parameters.
+        cfg (omegaconf.DictConfig): Hydra configuration object containing
+            all necessary parameters for inference.
     """
     logger = logging.getLogger(__name__)
     logger.info("Setting up logging configuration")

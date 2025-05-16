@@ -25,28 +25,28 @@ from ragas.metrics import (
 
 class EvaluationPipeline:
     """
-    A pipeline for evaluating a retrieval-augmented generation (RAG) system using various metrics.
+    A pipeline for evaluating a retrieval-augmented generation (RAG) system using RAGAS metrics.
 
     Attributes:
-        cfg (omegaconf.DictConfig): Configuration object containing pipeline settings.
-        logger (logging.Logger): Logger instance for logging messages.
-        embedding_model (Optional[HuggingFaceInstructEmbeddings]): Embedding model used for retrieval evaluation.
-        ragas_df (Optional[pd.DataFrame]): Dataframe storing inference results.
-        evaluator_llm (Optional[LangchainLLMWrapper]): LLM wrapper for evaluation.
-        metrics (list[object]): List of evaluation metrics used in the pipeline.
-        no_of_questions (Optional[int]): Number of questions used in evaluation.
-        cleaned_text_splitter (Optional[str]): Text splitting strategy applied to the dataset.
+        cfg (omegaconf.DictConfig): Configuration object containing pipeline parameters.
+        logger (logging.Logger): Logger instance for recording pipeline activities.
+        embedding_model (Optional[HuggingFaceInstructEmbeddings]): Embedding model used during evaluation.
+        ragas_df (Optional[pd.DataFrame]): DataFrame containing inference results used in evaluation.
+        evaluator_llm (Optional[LangchainLLMWrapper]): Wrapper for the selected LLM used during metric evaluation.
+        metrics (list[object]): List of RAGAS metric instances used for evaluation.
+        no_of_questions (Optional[int]): Number of questions generated during inference.
+        cleaned_text_splitter (Optional[str]): Name of the text splitting strategy used.
     """
 
     def __init__(
         self, cfg: omegaconf.DictConfig, logger: Optional[logging.Logger] = None
     ) -> None:
         """
-        Initializes the EvaluationPipeline with configuration and logging.
+        Initializes the EvaluationPipeline with configuration and logger.
 
         Args:
             cfg (omegaconf.DictConfig): Configuration object containing evaluation parameters.
-            logger (Optional[logging.Logger]): Logger instance for logging messages. Defaults to None.
+            logger (Optional[logging.Logger], optional): Logger instance for tracking progress. Defaults to None.
         """
         self.cfg = cfg
         self.logger = logger or logging.getLogger(__name__)
@@ -59,12 +59,12 @@ class EvaluationPipeline:
 
     def _run_inference(self):
         """
-        Runs inference using the InferencePipeline.
+        Runs inference using the InferencePipeline to generate evaluation data.
 
-        This method initializes the inference pipeline, loads the embedding model, and runs inference.
+        Loads the embedding model, runs inference, and prepares the dataset for evaluation.
 
         Raises:
-            RuntimeError: If inference fails due to an internal error.
+            RuntimeError: If inference fails due to incorrect configuration or internal errors.
         """
         try:
             infer_pipeline = InferencePipeline(cfg=self.cfg, logger=self.logger)
@@ -80,12 +80,12 @@ class EvaluationPipeline:
 
     def _initialize_llm(self):
         """
-        Initializes the LLM model for evaluation based on the specified configuration.
+        Initializes the LLM used for evaluation.
 
-        Loads API keys from the environment and initializes the appropriate LLM model.
+        Selects and loads the LLM (OpenAI or Gemini) based on the configuration and available API keys.
 
         Raises:
-            ValueError: If the API key is missing or an unsupported model is specified.
+            ValueError: If API key is missing or an unsupported model is specified.
             RuntimeError: If LLM initialization fails due to configuration or API issues.
         """
         load_dotenv()
@@ -120,12 +120,12 @@ class EvaluationPipeline:
 
     def _setup_metrics(self):
         """
-        Sets up evaluation metrics based on the configuration.
+        Initializes evaluation metrics based on the configuration.
 
-        This method initializes and configures the metrics used for evaluation.
+        Sets up RAGAS metrics using the initialized LLM and embedding model.
 
         Raises:
-            RuntimeError: If the LLM or embedding model is not initialized before metric setup.
+            RuntimeError: If the LLM or embedding model is not initialized before setting up metrics.
         """
         if self.evaluator_llm is None:
             raise RuntimeError("LLM is not initialized. Call _initialize_llm first")
@@ -152,16 +152,18 @@ class EvaluationPipeline:
 
     def evaluation(self):
         """
-        Executes the full evaluation pipeline.
+        Runs the full evaluation process.
 
         This includes:
-        - Running inference.
-        - Initializing the LLM model.
-        - Setting up evaluation metrics.
-        - Running the evaluation process and saving results.
+        - Running inference to obtain question-answer-context sets.
+        - Initializing the evaluation LLM.
+        - Setting up the RAGAS metrics.
+        - Executing the RAGAS evaluation and logging the results.
+
+        Evaluation results are saved to a JSON file defined in the configuration.
 
         Raises:
-            RuntimeError: If any component fails during execution.
+            RuntimeError: If any part of the evaluation pipeline fails.
         """
         self._run_inference()
         self._initialize_llm()

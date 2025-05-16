@@ -19,14 +19,19 @@ class PerformEmbeddings:
     """
     Handles document embedding and FAISS vector database operations.
 
+    This class provides functionality for text splitting, embedding generation
+    using HuggingFace models, and saving the embeddings in a FAISS vector store.
+
     Attributes:
-        cfg (omegaconf.DictConfig): Configuration settings.
-        documents (List[Document]): List of documents to process.
-        logger (logging.Logger): Logger instance for logging messages.
-        texts (List[Document]): List of processed text documents.
-        embedding_model (Optional[HuggingFaceInstructEmbeddings]): Loaded embedding model.
-        embeddings_path (Optional[str]): Path where embeddings are stored.
-        embeddings_model_name (Optional[str]): Name of the embedding model.
+        cfg (omegaconf.DictConfig): Configuration settings for text splitting
+            and embedding generation.
+        documents (List[Document]): A list of LangChain Document objects to process.
+        logger (logging.Logger): Logger instance used to log messages.
+        texts (List[Document]): The resulting list of split text documents.
+        embedding_model (Optional[HuggingFaceInstructEmbeddings]):
+            The loaded HuggingFace embedding model.
+        embeddings_path (Optional[str]): The local path where embeddings will be stored.
+        embeddings_model_name (Optional[str]): The cleaned name of the embedding model.
     """
 
     def __init__(
@@ -36,12 +41,14 @@ class PerformEmbeddings:
         logger: Optional[logging.Logger] = None,
     ) -> None:
         """
-        Initializes the PerformEmbeddings class.
+        Initializes the PerformEmbeddings instance with configuration, documents, and logger.
 
         Args:
-            cfg (omegaconf.DictConfig): Configuration dictionary.
-            documents (List[Document]): List of documents to be processed.
-            logger (Optional[logging.Logger], optional): Logger instance. Defaults to None.
+            cfg (omegaconf.DictConfig): Configuration dictionary with settings
+                for embedding and text splitting.
+            documents (List[Document]): A list of LangChain Document objects to be embedded.
+            logger (Optional[logging.Logger], optional): Optional logger instance for
+                debugging or tracking. Defaults to None.
         """
         self.cfg = cfg
         self.logger = logger or logging.getLogger(__name__)
@@ -53,10 +60,15 @@ class PerformEmbeddings:
 
     def _split_text(self) -> List[Document]:
         """
-        Splits the input documents into smaller chunks based on the configured text splitter.
+        Splits the input documents into smaller chunks using the configured text splitter.
+
+        The splitter is selected based on the configuration. Supported types include:
+        - RecursiveCharacterTextSplitter
+        - SentenceTransformersTokenTextSplitter
+        - SemanticChunker
 
         Returns:
-            List[Document]: A list of split text documents.
+            List[Document]: A list of LangChain Document objects after splitting.
         """
         self.embedding_model = self._load_embeddings_model()
 
@@ -89,10 +101,10 @@ class PerformEmbeddings:
 
     def _load_embeddings_model(self) -> HuggingFaceInstructEmbeddings:
         """
-        Loads the HuggingFace embedding model onto the appropriate device (CPU or GPU).
+        Loads the HuggingFace embedding model to either GPU or CPU based on availability.
 
         Returns:
-            HuggingFaceInstructEmbeddings: The loaded embedding model.
+            HuggingFaceInstructEmbeddings: The initialized embedding model ready for inference.
         """
         device = "cuda" if torch.cuda.is_available() else "cpu"
         self.logger.info(f"Embedding model will be loaded to {device}.\n")
@@ -110,10 +122,13 @@ class PerformEmbeddings:
 
     def _embed_documents(self) -> FAISS:
         """
-        Splits the documents, generates embeddings, and saves the vector store.
+        Embeds the documents using the loaded embedding model and saves them as a FAISS vector store.
+
+        The function ensures the text is split before embedding. It constructs an output path,
+        generates the embeddings, and saves them locally.
 
         Returns:
-            FAISS: The FAISS vector store containing the document embeddings.
+            FAISS: The FAISS vector store containing document embeddings.
         """
         if not self.texts:
             self._split_text()
@@ -149,10 +164,13 @@ class PerformEmbeddings:
 
     def generate_vectordb(self) -> FAISS:
         """
-        Processes the documents, generates embeddings, and loads the FAISS vector database.
+        Generates and saves the vector store from the provided documents.
+
+        This is the public method that orchestrates the document splitting, embedding,
+        and FAISS vector store creation and saving.
 
         Returns:
-            FAISS: The FAISS vector store containing the embeddings.
+            FAISS: The saved FAISS vector store containing embeddings.
         """
         self.logger.info("Starting document processing and generating embeddings.\n")
         self._split_text()

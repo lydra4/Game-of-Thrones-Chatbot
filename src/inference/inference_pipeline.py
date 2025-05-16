@@ -25,18 +25,33 @@ class InferencePipeline:
     A pipeline for performing Retrieval-Augmented Generation (RAG) inference.
 
     This pipeline integrates embedding models, vector databases, retrieval mechanisms,
-    and language models to generate contextually relevant responses.
+    and language models to generate contextually relevant responses from a given set of questions.
+
+    Attributes:
+        cfg (omegaconf.DictConfig): Configuration dictionary for the pipeline.
+        logger (logging.Logger): Logger instance for capturing pipeline logs.
+        langfuse (Langfuse): Langfuse instance for observability.
+        langfuse_handler (CallbackHandler): Langfuse callback handler.
+        embedding_model (HuggingFaceInstructEmbeddings): Embedding model used for vectorizing text.
+        vectordb (FAISS): FAISS-based vector store for semantic search.
+        llm (Union[ChatOpenAI, ChatGoogleGenerativeAI]): Language model for answering questions.
+        retriever: Document retriever instance.
+        qa_chain (RetrievalQA): QA chain combining retriever and LLM.
+        qns_list (list): List of input questions.
+        ans_list (list): List of generated answers.
+        answer_file (str): File path to store inference results.
+        cleaned_text_splitter (str): Human-readable name of text chunking strategy.
     """
 
     def __init__(
         self, cfg: omegaconf.DictConfig, logger: Optional[logging.Logger] = None
     ) -> None:
         """
-        Initializes the inference pipeline with a configuration and optional logger.
+        Initializes the inference pipeline with configuration and optional logger.
 
         Args:
             cfg (omegaconf.DictConfig): Configuration dictionary for the pipeline.
-            logger (Optional[logging.Logger], optional): Logger instance. Defaults to None.
+            logger (Optional[logging.Logger], optional): Logger instance. If not provided, uses default logger.
         """
         self.cfg = cfg
         self.logger = logger or logging.getLogger(__name__)
@@ -61,13 +76,14 @@ class InferencePipeline:
 
     def load_embedding_model(self) -> HuggingFaceInstructEmbeddings:
         """
-        Loads the embedding model specified in the configuration.
+        Loads a sentence-transformers embedding model as specified in the config.
 
         Returns:
             HuggingFaceInstructEmbeddings: The loaded embedding model.
+            str: Human-readable name of the text splitting strategy.
 
         Raises:
-            Exception: If the embedding model fails to load.
+            Exception: If loading the model fails.
         """
         device = "cuda" if torch.cuda.is_available() else "cpu"
         embeddings_model_name = self.cfg.embeddings.embeddings_path.split("/")[4]
@@ -97,11 +113,11 @@ class InferencePipeline:
 
     def _load_vectordb(self) -> None:
         """
-        Loads the FAISS vector database from the specified path.
+        Loads a FAISS vector database from the path specified in config.
 
         Raises:
-            FileNotFoundError: If the vector database path does not exist.
-            Exception: If loading the vector database fails.
+            FileNotFoundError: If the specified FAISS path does not exist.
+            Exception: If loading the FAISS index fails.
         """
         if not os.path.exists(self.cfg.embeddings.embeddings_path):
             raise FileNotFoundError(
@@ -129,17 +145,17 @@ class InferencePipeline:
         self, path: str, input_variables: Optional[list] = None
     ) -> PromptTemplate:
         """
-        Loads a prompt template from the specified file path.
+        Loads a prompt template from a file.
 
         Args:
             path (str): Path to the prompt template file.
-            input_variables (list, optional): List of input variables. Defaults to None.
+            input_variables (Optional[list], optional): List of expected variables in the prompt.
 
         Returns:
-            PromptTemplate: The loaded prompt template instance.
+            PromptTemplate: Parsed prompt template object.
 
         Raises:
-            Exception: If the prompt template file cannot be loaded.
+            Exception: If loading or reading the prompt file fails.
         """
         file_name = os.path.basename(path)
         self.logger.info(f"Loading Prompt Template: {file_name}.\n")
@@ -165,11 +181,11 @@ class InferencePipeline:
 
     def _initialize_llm(self) -> None:
         """
-        Initializes the language model (LLM) with the specified API key.
+        Initializes the language model (LLM) such as OpenAI GPT or Google Gemini.
 
         Raises:
-            ValueError: If the API key is missing.
-            Exception: If initializing the LLM fails.
+            ValueError: If the required API key is missing.
+            Exception: If the model initialization fails.
         """
         load_dotenv()
 
@@ -205,10 +221,12 @@ class InferencePipeline:
 
     def _create_retriever(self) -> None:
         """
-        Creates a retriever for document retrieval based on the vector database.
+        Creates a retriever to search the FAISS vector database and optionally wraps it with:
+            - MultiQueryRetriever for diverse reformulations.
+            - CohereRerank for reranking results.
 
         Raises:
-            ValueError: If the Cohere API key is missing.
+            ValueError: If reranking is enabled but the Cohere API key is not found.
         """
         self.logger.info("Initializing document retriever.\n")
         retriever = self.vectordb.as_retriever(
@@ -253,7 +271,7 @@ class InferencePipeline:
 
     def _create_qa_chain(self):
         """
-        Creates a RetrievalQA chain using the initialized LLM and retriever.
+        Builds the RetrievalQA chain using the selected prompt, retriever, and LLM.
         """
         prompt = self._load_prompt(
             path=self.cfg.path_to_qa_prompt, input_variables=["context", "question"]
@@ -270,10 +288,10 @@ class InferencePipeline:
 
     def _open_questions(self):
         """
-        Loads the list of questions from the specified file.
+        Loads a list of questions and their reference answers from the configured text file.
 
         Raises:
-            Exception: If the questions file cannot be loaded.
+            Exception: If the file cannot be read or parsed.
         """
         self.logger.info("Loading questions.\n")
 
@@ -294,14 +312,14 @@ class InferencePipeline:
 
     def _infer(self):
         """
-        Runs inference on the loaded questions, retrieves relevant contexts,
-        and generates answers using the LLM.
+        Runs inference over the questions using the QA chain and saves responses to a file.
 
         Returns:
-            Dataset: A Hugging Face dataset containing the questions, contexts, and answers.
+            EvaluationDataset: Dataset object containing question, answer, context, and references.
+            int: Number of questions processed.
 
         Raises:
-            Exception: If inference fails.
+            Exception: If inference or file writing fails.
         """
         folder_to_answers = os.path.dirname(self.cfg.llm.path_to_ans)
         os.makedirs(name=folder_to_answers, exist_ok=True)
@@ -350,10 +368,10 @@ class InferencePipeline:
 
     def run_inference(self) -> EvaluationDataset:
         """
-        Executes the full inference pipeline.
+        Executes the full RAG pipeline: load models, create retriever, load questions, and run inference.
 
         Returns:
-            EvaluationDataset: A dataset containing the questions, retrieved contexts, and generated answers.
+            EvaluationDataset: Dataset with results from the full inference pipeline.
         """
         self.load_embedding_model()
         self._load_vectordb()

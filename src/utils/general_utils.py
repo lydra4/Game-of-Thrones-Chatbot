@@ -10,15 +10,17 @@ logger = logging.getLogger(__name__)
 def setup_logging(
     logging_config_path="../conf/logging.yaml", default_level=logging.INFO
 ):
-    """Set up configuration for logging utilities.
+    """
+    Logging configuration module.
 
-    Parameters
-    ----------
-    logging_config_path : str, optional
-        Path to YAML file containing configuration for Python logger,
-        by default "./config/logging_config.yaml"
-    default_level : logging object, optional, by default logging.INFO
+    This module provides functionality to set up logging using a YAML configuration file.
+    If the configuration file is missing or invalid, it defaults to basic logging with a specified level.
 
+    Attributes:
+        logger (logging.Logger): Logger used to capture logs during setup.
+
+    Functions:
+        setup_logging(logging_config_path, default_level): Initializes logging from YAML or falls back to basic config.
     """
     try:
         os.makedirs("logs", exist_ok=True)
