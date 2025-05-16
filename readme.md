@@ -113,9 +113,14 @@ To containerize and run the chatbot using Docker, follow these steps:
 
 Before building the Docker image, ensure the following:
 
-- Docker is installed on your system ([Get Docker](https://docs.docker.com/get-docker/))
-- You have a valid `requirements.txt` in the project root
+- Docker is installed on your system ([Docker Desktop](https://docs.docker.com/get-docker/))
 - Your `.env` file (containing API keys and environment variables) exists under `src/.env`
+- Able to run **bash script**:
+
+  - **Linux/macOS:** Bash is usually pre-installed; you can run scripts directly in the terminal.
+  - **Windows:**  
+    - Use **Git Bash** (install [Git for Windows](https://git-scm.com/download/win)) to run bash scripts.  
+    - Alternatively, use **Windows Subsystem for Linux (WSL)** if installed.  
 
 ### 📦 Build Docker Image
 
