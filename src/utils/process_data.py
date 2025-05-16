@@ -10,18 +10,21 @@ import os
 import re
 from typing import List, Optional
 
+import ebooklib
+import ebooklib.epub
 import omegaconf
+from bs4 import BeautifulSoup
 from langchain.docstore.document import Document
 from langchain.document_loaders.base import BaseLoader
-from tika import parser
 
 
 class EPUBProcessor(BaseLoader):
     """Processes EPUB files by extracting and cleaning text.
 
-    This class scans a directory for `.epub` files, extracts their text using Apache Tika,
-    and applies configurable preprocessing steps such as whitespace normalization,
-    URL removal, and filtering of non-alphanumeric characters.
+    This class scans a directory for `.epub` files, extracts their text using
+    BeautifulSoup, and applies configurable preprocessing steps such as
+    whitespace normalization, URL removal, and filtering of non-alphanumeric
+    characters.
 
     Attributes:
         cfg (omegaconf.DictConfig): Configuration dictionary containing preprocessing settings.
@@ -31,25 +34,25 @@ class EPUBProcessor(BaseLoader):
     def __init__(
         self, cfg: omegaconf.dictconfig, logger: Optional[logging.Logger] = None
     ) -> None:
-        """Initializes the EPUBProcessor.
+        """Initializes the EPUBProcessor instance.
 
         Args:
             cfg (omegaconf.dictconfig): Configuration dictionary containing preprocessing settings.
             logger (Optional[logging.Logger], optional): Logger instance for logging messages.
-                If not provided, defaults to a logger with the module name.
+                If not provided, a default logger will be created.
         """
         self.cfg = cfg
         self.logger = logger or logging.getLogger(__name__)
 
     def _preprocess_text(self, text: str) -> str:
-        """Cleans and preprocesses the extracted text.
+        """Cleans and preprocesses the extracted text using configurable regex rules.
 
-        Applies a series of configurable preprocessing rules including:
-        - Whitespace normalization
-        - URL removal
-        - Non-alphanumeric filtering
-        - Consecutive character cleanup
-        - Newline normalization
+        This includes:
+            - Whitespace normalization
+            - URL removal
+            - Non-alphanumeric filtering
+            - Consecutive non-alphanumeric character replacement
+            - Newline normalization
 
         Args:
             text (str): Raw text extracted from an EPUB file.
@@ -83,18 +86,41 @@ class EPUBProcessor(BaseLoader):
 
         return text
 
-    def load(self) -> List[Document]:
-        """Loads and processes EPUB files from the configured directory.
+    def _extract_preprocess_text_from_epub(self, epub_path: str) -> str:
+        """Extracts and preprocesses text from a single EPUB file.
 
-        Extracts text content from all `.epub` files in the given directory using Tika,
-        preprocesses the content, and returns a list of LangChain `Document` objects.
+        This method parses the EPUB using `ebooklib`, extracts text from HTML
+        content using BeautifulSoup, and then preprocesses the combined text.
+
+        Args:
+            epub_path (str): Path to the EPUB file.
 
         Returns:
-            List[Document]: A list of documents containing the cleaned text and metadata.
+            str: Preprocessed text content extracted from the EPUB file.
+        """
+        book = ebooklib.epub.read_epub(name=epub_path)
+        all_text = []
+
+        for item in book.get_items():
+            if item.get_type() == ebooklib.ITEM_DOCUMENT:
+                soup = BeautifulSoup(item.get_content(), "html.parser")
+                all_text.append(soup.get_text(separator="\n"))
+
+        return self._preprocess_text(text="\n".join(all_text).lower().strip())
+
+    def load(self) -> List[Document]:
+        """Loads and processes all EPUB files in the configured directory.
+
+        This method searches for `.epub` files in the specified path,
+        extracts and preprocesses the text content from each file, and
+        returns them as a list of LangChain `Document` objects.
+
+        Returns:
+            List[Document]: A list of documents with cleaned page content and metadata.
 
         Raises:
-            FileNotFoundError: If the directory is not found or contains no EPUB files.
-            ValueError: If no valid text is extracted from any EPUB file.
+            FileNotFoundError: If the specified directory doesn't exist or contains no EPUB files.
+            ValueError: If no valid content is extracted from the EPUB files.
         """
 
         if not os.path.isdir(self.cfg.preprocessing.path):
@@ -120,17 +146,18 @@ class EPUBProcessor(BaseLoader):
             self.logger.info(f"Processing {book_name}")
 
             try:
-                raw_text = (
-                    parser.from_file(epub_file).get("content", "").lower().strip()
+                preprocess_text = self._extract_preprocess_text_from_epub(
+                    epub_path=epub_file
                 )
 
-                if not raw_text:
+                if not preprocess_text:
                     self.logger.warning(f"No text extracted from {book_name}")
                     continue
 
-                cleaned_text = self._preprocess_text(raw_text)
                 extracted_documents.append(
-                    Document(page_content=cleaned_text, metadata={"source": book_name})
+                    Document(
+                        page_content=preprocess_text, metadata={"source": book_name}
+                    )
                 )
                 self.logger.info("Successfull!\n")
 
