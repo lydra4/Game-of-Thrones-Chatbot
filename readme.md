@@ -15,7 +15,7 @@
   - [🧪 Evaluation with RAGAS](#-evaluation-with-ragas)
   - [✨ Example Queries](#-example-queries)
   - [🚀 Launch Instructions](#-launch-instructions)
-  - [🧱 Docker Setup ](#🧱-docker-setup)
+  - [🧱 Docker Setup ](#-docker-setup)
     - [📋 Prerequisites](#-prerequisites)
     - [📦 Build Docker Image](#-build-docker-image)
 
