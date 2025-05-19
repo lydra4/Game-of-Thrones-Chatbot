@@ -19,13 +19,18 @@
     - [📋 Prerequisites](#-prerequisites)
     - [📦 Build Docker Image](#-build-docker-image)
 
+---
+
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
 ![LangChain](https://img.shields.io/badge/LangChain-Integrated-yellow)
 ![Docker](https://img.shields.io/badge/Docker-Ready-green)
 ![License](https://img.shields.io/badge/License-MIT-lightgrey)
 ![RAGAS](https://img.shields.io/badge/Evaluation-RAGAS-critical)
+![GitHub stars](https://img.shields.io/github/stars/lydra4/Deep-Learning?style=social)
+![GitHub issues](https://img.shields.io/github/issues/lydra4/Deep-Learning)
+![GitHub last commit](https://img.shields.io/github/last-commit/lydra4/Deep-Learning)
 
-![A Song of Ice and Fire Box Set](images/george-r-r-martin-s-a-game-of-thrones-5-book-boxed-set-song-of-ice-and-fire-series.jpg)
+![Box set of George R.R. Martin's books - A Song of Ice and Fire](images/george-r-r-martin-s-a-game-of-thrones-5-book-boxed-set-song-of-ice-and-fire-series.jpg)
 
 ---
 
@@ -55,7 +60,7 @@ The chatbot’s knowledge base consists of the following five books by George R.
 
 ## 📁 Project Structure
 
-<summary><strong>📁 Project Directory Tree with Explanations</strong></summary>
+<strong>📁 Project Directory Tree with Explanations</strong>
 
 ```plaintext
 Game of Thrones Chatbot/
@@ -126,15 +131,15 @@ Here’s how the pipeline operates behind the scenes:
 
 ## 🧠 Models & Tooling
 
-| Component           | Tool/Library |
-| ------------------- | ------------ |
-| Embeddings          | Hugging Face |
-| Vector Store        | FAISS        |
-| LLM Interface       | LangChain    |
-| Reranker (Optional) | Cohere       |
-| Observability       | Langfuse     |
-| Evaluation Metrics  | RAGAS        |
-| Frontend            | Gradio       |
+| Component     | Tool/Library                            | Required    |
+| ------------- | --------------------------------------- | ----------- |
+| Embeddings    | ![Hugging Face](images/huggingface.png) | ✅          |
+| Vector Store  | ![FAISS](images/faiss.jpg)              | ✅          |
+| LLM Interface | ![LangChain](images/langchain.png)      | ✅          |
+| Reranker      | ![Cohere](images/cohere.png)            | 🔁 Optional |
+| Observability | ![Langfuse](images/langfuse.png)        | 🔁 Optional |
+| Evaluation    | ![RAGAS](images/ragas.png)              | ✅          |
+| Frontend      | ![Gradio](images/gradio.jpg)            | ✅          |
 
 > 🔁 Supports both single-query and multi-query retrieval  
 > 🔄 Reranking enabled via `ContextualCompressionRetriever`
@@ -164,6 +169,10 @@ The chatbot provides **text-grounded answers**, referencing exact content from t
 
 ---
 
+## Live Demo / Screenshots
+
+## ![Live Demo](images/livedemo.gif)
+
 ## 🚀 Launch Instructions
 
 To launch the Gradio interface locally:
@@ -173,6 +182,48 @@ python app.py
 ```
 
 ---
+
+## 🚀 Setup Instructions (Non-Docker)
+
+> Recommended for local development and debugging without Docker.
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/YOUR_USERNAME/game-of-thrones-chatbot.git
+cd game-of-thrones-chatbot
+```
+
+### 2. Create and Activate a Conda Environment
+
+```bash
+conda env create -f .\gotchatbot-conda-env.yaml -y
+conda activate got-chatbot
+```
+
+### 3. Install Dependencies
+
+```bash
+pip install -r .\requirements.txt -r .\dev-requirements.txt
+```
+
+### 4. Add Environment Variables
+
+Create a `.env` file inside the `src/` directory and include your API keys:
+
+```env
+OPENAI_API_KEY=your_openai_api_key
+GEMINI_API_KEY=your_gemini_api_key
+```
+
+### 5. Run the Application
+
+```bash
+python src/app.py
+```
+
+This will launch the Gradio interface at:  
+[Link](http://127.0.0.1:7860)
 
 ## 🧱 Docker Setup
 
