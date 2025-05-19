@@ -55,7 +55,6 @@ The chatbot’s knowledge base consists of the following five books by George R.
 
 ## 📁 Project Structure
 
-<details>
 <summary><strong>📁 Project Directory Tree with Explanations</strong></summary>
 
 ```plaintext
