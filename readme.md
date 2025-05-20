@@ -11,13 +11,15 @@
     - [1. 🔧 Data Preparation](#1--data-preparation)
     - [2. 🔎 Query + Retrieval](#2--query--retrieval)
     - [3. 💬 Generation](#3--generation)
-  - [🧠 Models \& Tooling](#-models--tooling)
+  - [🧠 Models & Tooling](#-models--tooling)
   - [🧪 Evaluation with RAGAS](#-evaluation-with-ragas)
   - [✨ Example Queries](#-example-queries)
   - [🚀 Launch Instructions](#-launch-instructions)
-  - [🧱 Docker Setup ](#-docker-setup)
+  - [🚀 Setup Instructions (Non-Docker)](#-setup-instructions-non-docker)
+  - [🧱 Docker Setup](#-docker-setup)
     - [📋 Prerequisites](#-prerequisites)
     - [📦 Build Docker Image](#-build-docker-image)
+  - [📖 Viewing Sphinx Documentation](#-viewing-sphinx-documentation)
 
 ---
 
@@ -80,6 +82,8 @@ Game of Thrones Chatbot/
 │   └── inference/         # Prompt templates
 │
 ├── docker/                # Dockerfile and Docker-specific configs
+├── docs/                  # Sphinx documentation (auto-generated)
+│   └── _build/html/       # HTML output directory for docs
 │
 ├── images/                # Diagrams and logos used in the README
 │
@@ -255,3 +259,36 @@ After building the image, run the below to spin up a docker container:
 ```bash
 bash scripts/run_docker.sh
 ```
+
+### 📖 Viewing Sphinx Documentation
+
+The documentation for this project is auto-generated using **Sphinx**.
+
+### 🔧 To open the documentation locally:
+
+1. **Clone the Repository**
+
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/game-of-thrones-chatbot.git
+   cd game-of-thrones-chatbot
+   ```
+
+2. **Navigate to the Sphinx HTML output folde**
+
+   ```bash
+   cd docs/_build/html
+   ```
+
+3. **Open the index.html file in your browser**
+
+- On macOS/Linux:
+
+  ```bash
+  open index.html
+  ```
+
+- On Windows:
+
+  ```bash
+  start index.html
+  ```
