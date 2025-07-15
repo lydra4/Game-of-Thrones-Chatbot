@@ -12,6 +12,7 @@ from langchain.text_splitter import (
 )
 from langchain_community.embeddings import HuggingFaceInstructEmbeddings
 from langchain_community.vectorstores import FAISS
+from langchain_experimental.open_clip import OpenCLIPEmbeddings
 from langchain_experimental.text_splitter import SemanticChunker
 
 
@@ -110,8 +111,8 @@ class TextEmbeddings:
         self.logger.info(f"Embedding model will be loaded to {device}.\n")
 
         model_config = {
-            "model_name": self.cfg.embeddings.embeddings_model.model_name,
-            "show_progress": self.cfg.embeddings.embeddings_model.show_progress,
+            "model_name": self.cfg.embeddings.text_embedding.model_name,
+            "show_progress": self.cfg.embeddings.text_embedding.show_progress,
             "model_kwargs": {"device": device},
         }
         self.embedding_model = HuggingFaceInstructEmbeddings(**model_config)
@@ -136,7 +137,7 @@ class TextEmbeddings:
         self.embeddings_model_name = re.sub(
             r'[<>:"/\\|?*]',
             "_",
-            self.cfg.embeddings.embeddings_model.model_name.split("/")[-1],
+            self.cfg.embeddings.text_embedding.model_name.split("/")[-1],
         )
 
         self.embeddings_path = os.path.join(
@@ -175,3 +176,26 @@ class TextEmbeddings:
         self.logger.info("Starting document processing and generating embeddings.\n")
         self._split_text()
         self._embed_documents()
+
+
+class ImageEmbeddings:
+    """
+    Handles document embedding and FAISS vector database operations.
+
+    This class provides functionality for text splitting, embedding generation
+    using HuggingFace models, and saving the embeddings in a FAISS vector store.
+    """
+
+    def __init__(
+        self,
+        cfg: omegaconf.DictConfig,
+        documents: List[Document],
+        logger: logging.Logger,
+    ) -> None:
+        self.cfg = cfg
+        self.logger = logger
+        self.documents = documents
+        self.embedding_model: OpenCLIPEmbeddings(
+            model_name=self.cfg.image_embedding.model_name,
+            checkpoint=self.cfg.image_embedding.checkpoint,
+        )
