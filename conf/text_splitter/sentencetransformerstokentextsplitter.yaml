@@ -1,7 +1,4 @@
-# Name of the text splitter strategy using SentenceTransformers tokenizer
-name: "sentence_transformers_token_text_splitter"
+name: "sentence_transformers_token_text_splitter" # Name of the text splitter strategy using SentenceTransformers tokenizer
 
 text_splitter:
-  # Number of tokens to overlap between consecutive chunks.
-  # This helps preserve context across chunk boundaries.
-  chunk_overlap: 50
+  chunk_overlap: 50 # Number of tokens to overlap between consecutive chunks. Helps preserve context across boundaries

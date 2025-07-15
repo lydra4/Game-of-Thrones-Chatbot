@@ -1,39 +1,21 @@
-# Default configuration sources to be merged.
-# `_self_` ensures the current config file is loaded.
-# `inference` and `embeddings: default` refer to other config files in the Hydra config group.
 defaults:
-  - _self_
-  - inference
-  - embeddings: default
+  - _self_ # Default configuration sources to be merged (ensures current config is loaded)
+  - inference # Reference to other config file in Hydra config group
+  - embeddings: default # Reference to embeddings config
 
-# Whether to display progress bars/logs during execution
-show_progress: True
+show_progress: True # Whether to display progress bars/logs during execution
 
-# LLM model to be used for inference
-model: "gpt-4o-mini"
+model: "gpt-4o-mini" # LLM model to be used for inference
 
-# Timezone setting for timestamps in logs or outputs
-timezone: "Asia/Singapore"
+timezone: "Asia/Singapore" # Timezone setting for timestamps in logs or outputs
 
-# Format to be used when printing datetime objects
-datetime_format: "%d/%m/%y %H:%M"
+datetime_format: "%d/%m/%y %H:%M" # Format to be used when printing datetime objects
 
-# Path where evaluation metrics will be saved
-metric_path: "./logs/"
+metric_path: "./logs/" # Path where evaluation metrics will be saved
 
-# Evaluation metrics toggle section
 metrics:
-  # Whether to calculate answer relevancy between prediction and ground truth
-  answer_relevancy: True
-
-  # Whether to measure precision of retrieved context chunks
-  context_precision: True
-
-  # Whether to evaluate how much of the ground truth context was retrieved
-  llm_context_recall: True
-
-  # Whether to assess whether the LLM output remains faithful to the provided context
-  faithfulness: True
-
-  # Whether to assess factual correctness independently of the context (disabled here)
-  factual_correctness: False
+  answer_relevancy: True # Whether to calculate answer relevancy between prediction and ground truth
+  context_precision: True # Whether to measure precision of retrieved context chunks
+  llm_context_recall: True # Whether to evaluate how much of the ground truth context was retrieved
+  faithfulness: True # Whether to assess whether the LLM output remains faithful to the provided context
+  factual_correctness: False # Whether to assess factual correctness independently of the context (disabled here)

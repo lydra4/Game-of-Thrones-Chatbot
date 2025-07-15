@@ -1,8 +1,4 @@
-# Name of the chunking strategy being used
-name: "semantic_chunker"
+name: "semantic_chunker" # Name of the chunking strategy being used
 
 text_splitter:
-  # Type of thresholding used to determine semantic breakpoints for chunking.
-  # Options may include "percentile", "fixed", etc. "percentile" means chunks are created based on
-  # similarity score percentiles between text segments.
-  breakpoint_threshold_type: "percentile"
+  breakpoint_threshold_type: "percentile" # Type of thresholding used to determine semantic breakpoints for chunking
