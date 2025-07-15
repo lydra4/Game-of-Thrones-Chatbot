@@ -15,7 +15,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_experimental.text_splitter import SemanticChunker
 
 
-class PerformEmbeddings:
+class TextEmbeddings:
     """
     Handles document embedding and FAISS vector database operations.
 
