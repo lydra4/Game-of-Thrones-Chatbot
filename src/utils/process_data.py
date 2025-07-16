@@ -12,10 +12,11 @@ from typing import List, Optional
 
 import ebooklib
 import ebooklib.epub
-import omegaconf
 from bs4 import BeautifulSoup
 from langchain.docstore.document import Document
 from langchain.document_loaders.base import BaseLoader
+from omegaconf import DictConfig
+from tqdm import tqdm
 
 
 class EPUBProcessor(BaseLoader):
@@ -32,7 +33,7 @@ class EPUBProcessor(BaseLoader):
     """
 
     def __init__(
-        self, cfg: omegaconf.dictconfig, logger: Optional[logging.Logger] = None
+        self, cfg: DictConfig, logger: Optional[logging.Logger] = None
     ) -> None:
         """Initializes the EPUBProcessor instance.
 
@@ -106,7 +107,7 @@ class EPUBProcessor(BaseLoader):
                 soup = BeautifulSoup(item.get_content(), "html.parser")
                 all_text.append(soup.get_text(separator="\n"))
 
-        return self._preprocess_text(text="\n".join(all_text).lower().strip())
+        return self._preprocess_text(text="\n".join(all_text).strip())
 
     def load(self) -> List[Document]:
         """Loads and processes all EPUB files in the configured directory.
@@ -141,7 +142,7 @@ class EPUBProcessor(BaseLoader):
 
         extracted_documents = []
 
-        for epub_file in epub_files:
+        for epub_file in tqdm(epub_files, desc="Processing EPUBs"):
             book_name = os.path.splitext(os.path.basename(epub_file))[0]
             self.logger.info(f"Processing {book_name}")
 
