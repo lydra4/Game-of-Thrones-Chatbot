@@ -11,8 +11,8 @@ from langchain.text_splitter import (
     SentenceTransformersTokenTextSplitter,
 )
 from langchain_community.embeddings import HuggingFaceInstructEmbeddings
-from langchain_community.vectorstores import FAISS
 from langchain_experimental.text_splitter import SemanticChunker
+from langchain_milvus import Milvus
 
 
 class TextEmbeddings:
@@ -51,8 +51,12 @@ class TextEmbeddings:
                 debugging or tracking. Defaults to None.
         """
         self.cfg = cfg
-        self.logger = logger or logging.getLogger(__name__)
         self.documents = documents
+        self.logger = logger or logging.getLogger(__name__)
+        self.uri_path: str = os.path.join(
+            self.cfg.embeddings.text_embeddings.embed_documents.embeddings_path,
+            self.cfg.embeddings.text_embeddings.embed_documents.index_name,
+        )
         self.texts: List[Document] = []
         self.embedding_model: Optional[HuggingFaceInstructEmbeddings] = None
         self.embeddings_path: Optional[str] = None
@@ -63,11 +67,19 @@ class TextEmbeddings:
                 -1
             ],
         )
+        self.embeddings_path = os.path.join(
+            self.cfg.embeddings.text_embeddings.embed_documents.embeddings_path,
+            self.cfg.text_splitter.name,
+            self.embeddings_model_name,
+            "text",
+        )
+
+        os.makedirs(self.embeddings_path, exist_ok=True)
+        os.makedirs(self.uri_path, exist_ok=True)
 
     def _load_embeddings_model(self):
         """
         Loads the HuggingFace embedding model to either GPU or CPU based on availability.
-
         Returns:
             HuggingFaceInstructEmbeddings: The initialized embedding model ready for inference.
         """
@@ -143,29 +155,18 @@ class TextEmbeddings:
         if self.embedding_model is None:
             raise ValueError("Embedding model is not loaded. Cannot proceed.")
 
-        self.embeddings_path = os.path.join(
-            self.cfg.embeddings.embed_documents.embeddings_path,
-            self.cfg.text_splitter.name,
-            self.embeddings_model_name,
-            "text",
-        )
-        os.makedirs(self.embeddings_path, exist_ok=True)
         self.logger.info(f"Embeddings will be saved @ {self.embeddings_path}\n")
 
         self.logger.info("Generating Vector Embeddings.\n")
 
-        vectordb = FAISS.from_documents(
-            documents=self.texts, embedding=self.embedding_model
+        vectordb = Milvus.from_documents(
+            documents=self.texts,
+            embedding=self.embedding_model,
+            drop_old=True,
+            connection_args={"uri": self.uri_path},
         )
 
-        self.logger.info("Saving Vector Embeddings.\n")
-
-        vectordb.save_local(
-            folder_path=self.embeddings_path,
-            index_name=self.cfg.embeddings.embed_documents.index_name,
-        )
-
-        self.logger.info("Successfully saved.\n")
+        self.logger.info("Successfully saved Vector Embeddings.\n")
 
     def generate_vectordb(self):
         """
