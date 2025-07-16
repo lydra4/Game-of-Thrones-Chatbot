@@ -12,7 +12,6 @@ from langchain.text_splitter import (
 )
 from langchain_community.embeddings import HuggingFaceInstructEmbeddings
 from langchain_community.vectorstores import FAISS
-from langchain_experimental.open_clip import OpenCLIPEmbeddings
 from langchain_experimental.text_splitter import SemanticChunker
 
 
@@ -57,7 +56,32 @@ class TextEmbeddings:
         self.texts: List[Document] = []
         self.embedding_model: Optional[HuggingFaceInstructEmbeddings] = None
         self.embeddings_path: Optional[str] = None
-        self.embeddings_model_name: Optional[str] = None
+        self.embeddings_model_name: str = re.sub(
+            r'[<>:"/\\|?*]',
+            "_",
+            self.cfg.embeddings.text_embeddings.text_embedding.model_name.split("/")[
+                -1
+            ],
+        )
+
+    def _load_embeddings_model(self):
+        """
+        Loads the HuggingFace embedding model to either GPU or CPU based on availability.
+
+        Returns:
+            HuggingFaceInstructEmbeddings: The initialized embedding model ready for inference.
+        """
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.logger.info(f"Embedding model will be loaded to {device}.\n")
+
+        model_config = {
+            "model_name": self.cfg.embeddings.text_embeddings.text_embedding.model_name,
+            "show_progress": self.cfg.embeddings.text_embeddings.text_embedding.show_progress,
+            "model_kwargs": {"device": device},
+        }
+        self.embedding_model = HuggingFaceInstructEmbeddings(**model_config)
+
+        self.logger.info(f"Embedding Model loaded to {device.upper()}.\n")
 
     def _split_text(self) -> List[Document]:
         """
@@ -71,8 +95,6 @@ class TextEmbeddings:
         Returns:
             List[Document]: A list of LangChain Document objects after splitting.
         """
-        self.embedding_model = self._load_embeddings_model()
-
         self.logger.info(f"Using {self.cfg.text_splitter.name.replace('_', ' ')}.\n")
 
         if self.cfg.text_splitter.name.lower() == "recursive_character_text_splitter":
@@ -90,38 +112,24 @@ class TextEmbeddings:
             )
 
         elif self.cfg.text_splitter.name.lower() == "semantic_chunker":
+            if self.embedding_model is None:
+                raise ValueError(
+                    "Embedding model must be loaded before using SemanticChunker."
+                )
             text_splitter = SemanticChunker(
                 embeddings=self.embedding_model,
                 breakpoint_threshold_type=self.cfg.text_splitter.text_splitter.breakpoint_threshold_type,
             )
+
+        else:
+            raise ValueError(f"Unknown text splitter: {self.cfg.text_splitter.name}.")
 
         self.texts = text_splitter.split_documents(self.documents)
         self.logger.info(f"Text split into {len(self.texts)} parts.")
 
         return self.texts
 
-    def _load_embeddings_model(self) -> HuggingFaceInstructEmbeddings:
-        """
-        Loads the HuggingFace embedding model to either GPU or CPU based on availability.
-
-        Returns:
-            HuggingFaceInstructEmbeddings: The initialized embedding model ready for inference.
-        """
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.logger.info(f"Embedding model will be loaded to {device}.\n")
-
-        model_config = {
-            "model_name": self.cfg.embeddings.text_embedding.model_name,
-            "show_progress": self.cfg.embeddings.text_embedding.show_progress,
-            "model_kwargs": {"device": device},
-        }
-        self.embedding_model = HuggingFaceInstructEmbeddings(**model_config)
-
-        self.logger.info(f"Embedding Model loaded to {device.upper()}.\n")
-
-        return self.embedding_model
-
-    def _embed_documents(self) -> FAISS:
+    def _embed_document(self):
         """
         Embeds the documents using the loaded embedding model and saves them as a FAISS vector store.
 
@@ -131,19 +139,15 @@ class TextEmbeddings:
         Returns:
             FAISS: The FAISS vector store containing document embeddings.
         """
-        if not self.texts:
-            self._split_text()
 
-        self.embeddings_model_name = re.sub(
-            r'[<>:"/\\|?*]',
-            "_",
-            self.cfg.embeddings.text_embedding.model_name.split("/")[-1],
-        )
+        if self.embedding_model is None:
+            raise ValueError("Embedding model is not loaded. Cannot proceed.")
 
         self.embeddings_path = os.path.join(
             self.cfg.embeddings.embed_documents.embeddings_path,
             self.cfg.text_splitter.name,
             self.embeddings_model_name,
+            "text",
         )
         os.makedirs(self.embeddings_path, exist_ok=True)
         self.logger.info(f"Embeddings will be saved @ {self.embeddings_path}\n")
@@ -163,7 +167,7 @@ class TextEmbeddings:
 
         self.logger.info("Successfully saved.\n")
 
-    def generate_vectordb(self) -> FAISS:
+    def generate_vectordb(self):
         """
         Generates and saves the vector store from the provided documents.
 
@@ -173,29 +177,7 @@ class TextEmbeddings:
         Returns:
             FAISS: The saved FAISS vector store containing embeddings.
         """
-        self.logger.info("Starting document processing and generating embeddings.\n")
+        self.logger.info("Embedding text.")
+        self._load_embeddings_model()
         self._split_text()
-        self._embed_documents()
-
-
-class ImageEmbeddings:
-    """
-    Handles document embedding and FAISS vector database operations.
-
-    This class provides functionality for text splitting, embedding generation
-    using HuggingFace models, and saving the embeddings in a FAISS vector store.
-    """
-
-    def __init__(
-        self,
-        cfg: omegaconf.DictConfig,
-        documents: List[Document],
-        logger: logging.Logger,
-    ) -> None:
-        self.cfg = cfg
-        self.logger = logger
-        self.documents = documents
-        self.embedding_model: OpenCLIPEmbeddings(
-            model_name=self.cfg.image_embedding.model_name,
-            checkpoint=self.cfg.image_embedding.checkpoint,
-        )
+        self._embed_document()
