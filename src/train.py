@@ -28,7 +28,6 @@ def main(cfg):
         cfg (omegaconf.DictConfig): Hydra configuration object containing
             all necessary parameters for the embedding pipeline.
     """
-    print(cfg)
     logger = logging.getLogger(__name__)
     logger.info("Setting up logging configuration.\n")
     setup_logging(
