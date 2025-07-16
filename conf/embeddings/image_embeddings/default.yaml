@@ -1,0 +1,2 @@
+model_name: "ViT-B/32"
+checkpoint: "laion2b_s32b_b79k"
