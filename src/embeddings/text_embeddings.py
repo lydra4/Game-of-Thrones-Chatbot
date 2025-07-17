@@ -10,9 +10,9 @@ from langchain.text_splitter import (
     RecursiveCharacterTextSplitter,
     SentenceTransformersTokenTextSplitter,
 )
+from langchain_chroma import Chroma
 from langchain_community.embeddings import HuggingFaceInstructEmbeddings
 from langchain_experimental.text_splitter import SemanticChunker
-from langchain_milvus import Milvus
 
 
 class TextEmbeddings:
@@ -25,23 +25,19 @@ class TextEmbeddings:
         self.cfg = cfg
         self.documents = documents
         self.logger = logger or logging.getLogger(__name__)
-        self.uri_path: str = os.path.join(
-            self.cfg.embeddings.text_embeddings.embeddings_path,
-            self.cfg.embeddings.text_embeddings.index_name,
-        )
         self.embeddings_model_name: str = re.sub(
             r'[<>:"/\\|?*]',
             "_",
             self.cfg.embeddings.text_embeddings.model_name.split("/")[-1],
         )
-        self.embeddings_path: str = os.path.join(
+        self.persist_directory: str = os.path.join(
             self.cfg.embeddings.text_embeddings.embeddings_path,
             self.cfg.text_splitter.name,
+            self.cfg.embeddings.text_embeddings.index_name,
             self.embeddings_model_name,
         )
 
-        os.makedirs(self.embeddings_path, exist_ok=True)
-        os.makedirs(self.uri_path, exist_ok=True)
+        os.makedirs(self.persist_directory, exist_ok=True)
 
     def _load_embeddings_model(self):
         device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -86,25 +82,24 @@ class TextEmbeddings:
         else:
             raise ValueError(f"Unknown text splitter: {self.cfg.text_splitter.name}.")
 
-        chunks = text_splitter.split_documents(self.documents)
-        self.logger.info(f"Text split into {len(chunks)} parts.")
+        documents = text_splitter.split_documents(self.documents)
+        self.logger.info(f"Text split into {len(documents)} parts.")
 
-        return chunks
+        return documents
 
     def _embed_document(
         self,
         embedding_model: HuggingFaceInstructEmbeddings,
-        chunks: List[Document],
+        documents: List[Document],
     ):
         self.logger.info(
-            f"Generating Vector Embeddings, it will be saved @ {self.embeddings_path}.\n"
+            f"Generating Vector Embeddings, it will be saved @ {self.persist_directory}.\n"
         )
 
-        Milvus.from_documents(
-            documents=chunks,
+        Chroma.from_documents(
+            documents=documents,
             embedding=embedding_model,
-            drop_old=True,
-            connection_args={"uri": self.uri_path},
+            persist_directory=self.persist_directory,
         )
 
         self.logger.info("Successfully generated and saved Vector Embeddings.\n")
@@ -112,5 +107,5 @@ class TextEmbeddings:
     def generate_vectordb(self):
         self.logger.info("Embedding text.")
         embedding_model = self._load_embeddings_model()
-        chunks = self._split_text(embedding_model=embedding_model)
-        self._embed_document(embedding_model=embedding_model, chunks=chunks)
+        documents = self._split_text(embedding_model=embedding_model)
+        self._embed_document(embedding_model=embedding_model, documents=documents)
