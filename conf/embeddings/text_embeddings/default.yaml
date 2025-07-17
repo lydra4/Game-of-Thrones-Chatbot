@@ -1,7 +1,4 @@
-text_embedding:
-  model_name: "all-MiniLM-L6-v2" # Name of the sentence-transformer model to use for generating embeddings
-  show_progress: True # Whether to show a progress bar during embedding generation
-
-embed_documents:
-  embeddings_path: "./data/embeddings/"
-  index_name: "milvus.db"
+model_name: "all-MiniLM-L6-v2"
+show_progress: True
+embeddings_path: "./data/embeddings/text/"
+index_name: "milvus.db"
