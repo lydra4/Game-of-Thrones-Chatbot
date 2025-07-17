@@ -33,7 +33,6 @@ class TextEmbeddings:
         self.persist_directory: str = os.path.join(
             self.cfg.embeddings.text_embeddings.embeddings_path,
             self.cfg.text_splitter.name,
-            self.cfg.embeddings.text_embeddings.index_name,
             self.embeddings_model_name,
         )
 
