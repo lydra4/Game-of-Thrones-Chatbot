@@ -11,8 +11,8 @@ from langchain.text_splitter import (
     SentenceTransformersTokenTextSplitter,
 )
 from langchain_chroma import Chroma
-from langchain_community.embeddings import HuggingFaceInstructEmbeddings
 from langchain_experimental.text_splitter import SemanticChunker
+from langchain_huggingface import HuggingFaceEmbeddings
 
 
 class TextEmbeddings:
@@ -41,20 +41,18 @@ class TextEmbeddings:
     def _load_embeddings_model(self):
         device = "cuda" if torch.cuda.is_available() else "cpu"
         self.logger.info(f"Embedding model will be loaded to {device}.")
-
-        model_config = {
-            "model_name": self.cfg.embeddings.text_embeddings.model_name,
-            "show_progress": self.cfg.embeddings.text_embeddings.show_progress,
-            "model_kwargs": {"device": device},
-        }
-        embedding_model = HuggingFaceInstructEmbeddings(**model_config)
+        embedding_model = HuggingFaceEmbeddings(
+            model_name=self.cfg.embeddings.text_embeddings.model_name,
+            show_progress=self.cfg.embeddings.text_embeddings.show_progress,
+            model_kwargs={"device": device},
+        )
         self.logger.info(f"Embedding Model loaded to {device.upper()}.")
 
         return embedding_model
 
     def _split_text(
         self,
-        embedding_model: HuggingFaceInstructEmbeddings,
+        embedding_model: HuggingFaceEmbeddings,
     ) -> List[Document]:
         self.logger.info(f"Using {self.cfg.text_splitter.name.replace('_', ' ')}.")
 
@@ -88,7 +86,7 @@ class TextEmbeddings:
 
     def _embed_document(
         self,
-        embedding_model: HuggingFaceInstructEmbeddings,
+        embedding_model: HuggingFaceEmbeddings,
         documents: List[Document],
     ):
         self.logger.info(
