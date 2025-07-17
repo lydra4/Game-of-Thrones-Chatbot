@@ -41,7 +41,7 @@ class TextEmbeddings:
 
     def _load_embeddings_model(self):
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.logger.info(f"Embedding model will be loaded to {device}.\n")
+        self.logger.info(f"Embedding model will be loaded to {device}.")
 
         model_config = {
             "model_name": self.cfg.embeddings.text_embeddings.model_name,
@@ -49,7 +49,7 @@ class TextEmbeddings:
             "model_kwargs": {"device": device},
         }
         embedding_model = HuggingFaceInstructEmbeddings(**model_config)
-        self.logger.info(f"Embedding Model loaded to {device.upper()}.\n")
+        self.logger.info(f"Embedding Model loaded to {device.upper()}.")
 
         return embedding_model
 
@@ -57,7 +57,7 @@ class TextEmbeddings:
         self,
         embedding_model: HuggingFaceInstructEmbeddings,
     ) -> List[Document]:
-        self.logger.info(f"Using {self.cfg.text_splitter.name.replace('_', ' ')}.\n")
+        self.logger.info(f"Using {self.cfg.text_splitter.name.replace('_', ' ')}.")
 
         if self.cfg.text_splitter.name.lower() == "recursive_character_text_splitter":
             text_splitter = RecursiveCharacterTextSplitter(
@@ -93,7 +93,7 @@ class TextEmbeddings:
         documents: List[Document],
     ):
         self.logger.info(
-            f"Generating Vector Embeddings, it will be saved @ {self.persist_directory}.\n"
+            f"Generating Vector Embeddings, it will be saved @ {self.persist_directory}."
         )
 
         Chroma.from_documents(
@@ -102,7 +102,7 @@ class TextEmbeddings:
             persist_directory=self.persist_directory,
         )
 
-        self.logger.info("Successfully generated and saved Vector Embeddings.\n")
+        self.logger.info("Successfully generated and saved Vector Embeddings.")
 
     def generate_vectordb(self):
         self.logger.info("Embedding text.")
