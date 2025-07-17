@@ -1,5 +1,5 @@
 defaults:
   - _self_
-  - preprocessing: default # Includes default preprocessing configuration (from preprocessing/default.yaml)
-  - embeddings/text_embeddings: default # Includes default embeddings configuration (from embeddings/default.yaml)
-  - text_splitter: semanticchunker # Specifies the text splitting strategy to use (e.g., SemanticChunker)
+  - preprocessing: default
+  - embeddings/text_embeddings: default
+  - text_splitter: semanticchunker
