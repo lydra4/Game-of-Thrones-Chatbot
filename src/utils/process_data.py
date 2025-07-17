@@ -160,7 +160,7 @@ class EPUBProcessor(BaseLoader):
                         page_content=preprocess_text, metadata={"source": book_name}
                     )
                 )
-                self.logger.info("Successfull!\n")
+                self.logger.info(f"Successfully processed {book_name}.")
 
             except Exception as e:
                 self.logger.error(f"Error Processing {book_name}: {e}", exc_info=True)
