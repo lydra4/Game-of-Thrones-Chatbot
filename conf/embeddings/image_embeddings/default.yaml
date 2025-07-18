@@ -1,4 +1,4 @@
-model_name: "ViT-B/32"
-checkpoint: "laion2b_s32b_b79k"
+model_name: "ViT-B-32"
+checkpoint: "laion2b_s34b_b79k"
 embeddings_path: "./data/embeddings/image/"
 output_dir: "./data/datasets/images/"
