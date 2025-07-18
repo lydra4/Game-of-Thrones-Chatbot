@@ -1,4 +1,4 @@
-path: "./data/datasets/" # Path to the directory containing the EPUB files
+path: "./data/datasets/books/" # Path to the directory containing the EPUB files
 file_extension: ".epub" # File extension to filter files to process
 
 whitespace: r"\s+" # Regex pattern to match one or more whitespace characters (tabs, newlines, etc.)
