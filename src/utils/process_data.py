@@ -8,18 +8,17 @@ It uses Apache Tika for content extraction and supports custom preprocessing rul
 import logging
 import os
 import re
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import ebooklib
-import ebooklib.epub
 from bs4 import BeautifulSoup
+from ebooklib import epub
 from langchain.docstore.document import Document
-from langchain.document_loaders.base import BaseLoader
 from omegaconf import DictConfig
 from tqdm import tqdm
 
 
-class EPUBProcessor(BaseLoader):
+class EPUBProcessor:
     """Processes EPUB files by extracting and cleaning text.
 
     This class scans a directory for `.epub` files, extracts their text using
@@ -99,7 +98,7 @@ class EPUBProcessor(BaseLoader):
         Returns:
             str: Preprocessed text content extracted from the EPUB file.
         """
-        book = ebooklib.epub.read_epub(name=epub_path)
+        book = epub.read_epub(name=epub_path)
         all_text = []
 
         for item in book.get_items():
@@ -109,7 +108,34 @@ class EPUBProcessor(BaseLoader):
 
         return self._preprocess_text(text="\n".join(all_text).strip())
 
-    def load(self) -> List[Document]:
+    def _extract_images_from_epub(self, epub_path: str) -> Tuple[List[str], List[dict]]:
+        book_name = os.path.splitext(os.path.basename(epub_path))[0]
+        book = epub.read_epub(epub_path)
+
+        saved_image_paths = []
+        metadata_list = []
+
+        output_dir = os.path.join(self.cfg.image_embedding.output_dir, book_name)
+        os.makedirs(output_dir, exist_ok=True)
+
+        for item in book.get_items():
+            if item.get_type() == ebooklib.ITEM_IMAGE:
+                image_name = item.get_name()
+                full_path = os.path.join(output_dir, image_name)
+                with open(full_path, "wb") as f:
+                    f.write(item.get_content())
+                saved_image_paths.append(full_path)
+                metadata_list.append(
+                    {
+                        "image_name": image_name,
+                        "book_name": book_name,
+                        "source_path": full_path,
+                    }
+                )
+
+        return saved_image_paths, metadata_list
+
+    def load(self) -> Tuple[List[Document], List[bytes], List[dict]]:
         """Loads and processes all EPUB files in the configured directory.
 
         This method searches for `.epub` files in the specified path,
@@ -141,6 +167,8 @@ class EPUBProcessor(BaseLoader):
             )
 
         extracted_documents = []
+        saved_images = []
+        metadata_list = []
 
         for epub_file in tqdm(epub_files, desc="Processing EPUBs"):
             book_name = os.path.splitext(os.path.basename(epub_file))[0]
@@ -150,9 +178,16 @@ class EPUBProcessor(BaseLoader):
                 preprocess_text = self._extract_preprocess_text_from_epub(
                     epub_path=epub_file
                 )
+                saved_image_paths, image_metadatas = self._extract_images_from_epub(
+                    epub_path=epub_file
+                )
 
                 if not preprocess_text:
                     self.logger.warning(f"No text extracted from {book_name}")
+                    continue
+
+                if not saved_image_paths:
+                    self.logger.warning(f"No images found in {book_name}")
                     continue
 
                 extracted_documents.append(
@@ -160,6 +195,11 @@ class EPUBProcessor(BaseLoader):
                         page_content=preprocess_text, metadata={"source": book_name}
                     )
                 )
+
+                for path, metadata in zip(saved_image_paths, image_metadatas):
+                    saved_images.append(path)
+                    metadata_list.append(metadata)
+
                 self.logger.info(f"Successfully processed {book_name}.")
 
             except Exception as e:
@@ -167,7 +207,10 @@ class EPUBProcessor(BaseLoader):
 
         if not extracted_documents:
             raise ValueError(
-                f"No valid text extracted from {self.cfg.preprocessing.path}"
+                f"No valid text extracted from {self.cfg.preprocessing.path}."
             )
 
-        return extracted_documents
+        if not saved_images:
+            self.logger.warning(f"No images found from {self.cfg.preprocessing.path}.")
+
+        return extracted_documents, saved_images, metadata_list
