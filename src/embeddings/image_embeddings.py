@@ -1,14 +1,11 @@
 import logging
 import os
+import re
 from typing import List, Optional
 
-import ebooklib
-import omegaconf
-from ebooklib import epub
-from langchain.docstore.document import Document as TextDocument
-from langchain.schema import Document as LCDocument
-from langchain.vectorstores import FAISS
+from langchain_chroma import Chroma
 from langchain_experimental.open_clip import OpenCLIPEmbeddings
+from omegaconf import DictConfig
 
 
 class ImageEmbeddings:
@@ -21,14 +18,19 @@ class ImageEmbeddings:
 
     def __init__(
         self,
-        cfg: omegaconf.DictConfig,
-        documents: List[TextDocument],
-        logger: logging.Logger,
+        cfg: DictConfig,
+        saved_images: List[str],
+        metadata_list: List[dict],
+        logger: Optional[logging.Logger] = None,
     ) -> None:
         self.cfg = cfg
-        self.logger = logger
-        self.documents = documents
-        self.embeddings_path: Optional[str] = None
+        self.logger = logger or logging.getLogger(__name__)
+        self.saved_images = saved_images
+        self.metadata_list = metadata_list
+
+        if len(saved_images) != len(metadata_list):
+            raise ValueError("Mismatch between number of saved images and metadata.")
+
         self.embedding_model = OpenCLIPEmbeddings(
             model=None,
             model_name=self.cfg.image_embedding.model_name,
@@ -36,39 +38,28 @@ class ImageEmbeddings:
             preprocess=None,
             tokenizer=None,
         )
+        model_name_cleaned: str = re.sub(
+            r'[<>:"/\\|?*]', "_", self.cfg.image_embedding.model_name
+        )
+        self.persist_directory: str = os.path.join(
+            self.cfg.image_embedding.embeddings_path,
+            model_name_cleaned,
+        )
 
-    def _extract_images_from_epub(self, epub_path: str) -> List[tuple]:
-        book_name = os.path.splitext(os.path.basename(epub_path))[0]
-        book = epub.read_epub(epub_path)
-        images = []
-        for item in book.get_items():
-            if item.get_type() == ebooklib.ITEM_IMAGE:
-                images.append((item.get_content(), item.get_name(), book_name))
-        return images
+        os.makedirs(self.persist_directory, exist_ok=True)
+        self.logger.info(f"Image embeddings will be saved @ {self.persist_directory}.")
 
-    def embed_images(self):
-        all_bytes = []
-        metadata_list = []
-        for document in self.documents:
-            book_name = document.metadata.get("source")
-            epub_path = os.path.join(self.cfg.preprocessing.path, f"{book_name}.epub")
-            if not os.path.isfile(epub_path):
-                self.logger.warning(f"EPUB not found for '{book_name}': {epub_path}")
-                continue
+    def generate_image_db(self):
+        if not self.saved_images:
+            raise ValueError("No image paths provided.")
 
-            extracted_images = self._extract_images_from_epub(epub_path)
-            for image_bytes, image_name, _ in extracted_images:
-                all_bytes.append(image_bytes)
-                metadata_list.append({"source": book_name, "image_name": image_name})
+        self.logger.info(f"Embedding {len(self.saved_images)} images with CLIP.")
 
-        if not all_bytes:
-            raise ValueError("No images found in provided EPUB documents.")
-
-        self.logger.info(f"Embedding {len(all_bytes)} images with CLIP.")
-        image_embeddings = self.embedding_model.embed_documents(all_bytes)
-
-        lc_docs = [
-            LCDocument(page_content="Game of Thrones Image", metadata=meta)
-            for meta in metadata_list
-        ]
-        store = FAISS.from_documents(image_embeddings, self.embedding_model, lc_docs)
+        vector_store = Chroma(
+            embedding_function=self.embedding_model,
+            persist_directory=self.persist_directory,
+        )
+        vector_store.add_images(uris=self.saved_images, metadatas=self.metadata_list)
+        self.logger.info(
+            f"Successfully generated and saved image embeddings @ {self.persist_directory}."
+        )
