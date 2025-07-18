@@ -115,13 +115,16 @@ class EPUBProcessor:
         saved_image_paths = []
         metadata_list = []
 
-        output_dir = os.path.join(self.cfg.image_embedding.output_dir, book_name)
+        output_dir = os.path.join(
+            self.cfg.embeddings.image_embeddings.output_dir, book_name
+        )
         os.makedirs(output_dir, exist_ok=True)
 
         for item in book.get_items():
             if item.get_type() == ebooklib.ITEM_IMAGE:
                 image_name = item.get_name()
-                full_path = os.path.join(output_dir, image_name)
+                clean_image_name = os.path.basename(image_name)
+                full_path = os.path.join(output_dir, clean_image_name)
                 with open(full_path, "wb") as f:
                     f.write(item.get_content())
                 saved_image_paths.append(full_path)
@@ -135,7 +138,7 @@ class EPUBProcessor:
 
         return saved_image_paths, metadata_list
 
-    def load(self) -> Tuple[List[Document], List[bytes], List[dict]]:
+    def load(self) -> Tuple[List[Document], List[str], List[dict]]:
         """Loads and processes all EPUB files in the configured directory.
 
         This method searches for `.epub` files in the specified path,
@@ -184,21 +187,19 @@ class EPUBProcessor:
 
                 if not preprocess_text:
                     self.logger.warning(f"No text extracted from {book_name}")
-                    continue
+                else:
+                    extracted_documents.append(
+                        Document(
+                            page_content=preprocess_text, metadata={"source": book_name}
+                        )
+                    )
 
                 if not saved_image_paths:
                     self.logger.warning(f"No images found in {book_name}")
-                    continue
-
-                extracted_documents.append(
-                    Document(
-                        page_content=preprocess_text, metadata={"source": book_name}
-                    )
-                )
-
-                for path, metadata in zip(saved_image_paths, image_metadatas):
-                    saved_images.append(path)
-                    metadata_list.append(metadata)
+                else:
+                    for path, metadata in zip(saved_image_paths, image_metadatas):
+                        saved_images.append(path)
+                        metadata_list.append(metadata)
 
                 self.logger.info(f"Successfully processed {book_name}.")
 
