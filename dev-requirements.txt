@@ -1,7 +1,12 @@
+# Code Formatting and Linting
 black==25.1.0
-pre_commit==4.2.0
+ruff==0.12.4
 pylint==3.3.7
-ruff==0.12.3
+
+# Pre-commit Hooks
+pre-commit==4.2.0
+
+# Documentation
 sphinx==8.2.3
 sphinx-autodoc-typehints==3.2.0
 sphinx-rtd-theme==3.0.2
