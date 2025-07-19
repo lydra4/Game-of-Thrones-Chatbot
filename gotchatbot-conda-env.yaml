@@ -1,7 +1,16 @@
 name: gotchatbot
 channels:
-  - defaults
   - conda-forge
+  - defaults
 dependencies:
   - python=3.12.10
   - pip=24.3
+  - conda-forge::mamba # Faster package resolver
+  - conda-forge::git # For version control
+  - conda-forge::git-lfs # For large files
+  - conda-forge::make # For build processes
+  - conda-forge::cmake # For some Python packages
+  - conda-forge::pkg-config # For system dependencies
+  - pip:
+      - -r requirements.txt
+      - -r dev-requirements.txt
