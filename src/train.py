@@ -43,7 +43,7 @@ def main(cfg):
     text_embeddings = TextEmbeddings(
         cfg=cfg, documents=extracted_documents, logger=logger
     )
-    text_embeddings.generate_vectordb()
+    text_embeddings.generate_text_vectordb()
 
     image_embeddings = ImageEmbeddings(
         cfg=cfg,
@@ -51,7 +51,7 @@ def main(cfg):
         metadata_list=metadata_list,
         logger=logger,
     )
-    image_embeddings.generate_image_db()
+    image_embeddings.generate_image_vectordb()
 
 
 if __name__ == "__main__":

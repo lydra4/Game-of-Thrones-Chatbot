@@ -49,7 +49,7 @@ class ImageEmbeddings:
         os.makedirs(self.persist_directory, exist_ok=True)
         self.logger.info(f"Image embeddings will be saved @ {self.persist_directory}.")
 
-    def generate_image_db(self):
+    def generate_image_vectordb(self):
         if not self.saved_images:
             raise ValueError("No image paths provided.")
 

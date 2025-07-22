@@ -101,7 +101,7 @@ class TextEmbeddings:
 
         self.logger.info("Successfully generated and saved Vector Embeddings.")
 
-    def generate_vectordb(self):
+    def generate_text_vectordb(self):
         self.logger.info("Embedding text.")
         embedding_model = self._load_embeddings_model()
         documents = self._split_text(embedding_model=embedding_model)
