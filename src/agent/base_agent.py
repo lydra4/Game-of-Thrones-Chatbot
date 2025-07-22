@@ -1,12 +1,14 @@
 import logging
+from abc import ABC, abstractmethod
 from typing import Any, List, Optional, Union
 
 from langchain.agents import initialize_agent
-from omegaconf import DictConfig
+from langchain.prompts import PromptTemplate
 from langchain.tools import BaseTool
+from omegaconf import DictConfig
 
 
-class BaseAgent:
+class BaseAgent(ABC):
     def __init__(
         self,
         cfg: DictConfig,
@@ -20,10 +22,15 @@ class BaseAgent:
         self.logger = logger or logging.getLogger(__name__)
         self.agent = initialize_agent(tools=self.tools, llm=self.llm, verbose=True)
 
-        self.logger.debug(f"{self.__class__.__name__} initialized with config: {cfg}")s
+        self.logger.debug(f"{self.__class__.__name__} initialized with config: {cfg}")
 
+    def open_prompt_template(
+        self,
+        template: str,
+        input_variables: List[str],
+    ) -> PromptTemplate:
+        return PromptTemplate(template=template, input_variables=input_variables)
+
+    @abstractmethod
     def run(self, input_data: Union[str, List[str]]):
-        if not hasattr(self, 'agent'):
-            raise NotImplementedError("Each agent must implement its own run method.")
-        
-        return self.agent.run(input_data)
+        pass
