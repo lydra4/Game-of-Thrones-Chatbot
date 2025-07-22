@@ -1,4 +1,4 @@
-name: "semantic_chunker" # Name of the chunking strategy being used
+name: "semantic_chunker"
 
 text_splitter:
-  breakpoint_threshold_type: "percentile" # Type of thresholding used to determine semantic breakpoints for chunking
+  breakpoint_threshold_type: "percentile"
