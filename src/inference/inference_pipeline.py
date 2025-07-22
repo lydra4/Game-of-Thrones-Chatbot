@@ -1,23 +1,22 @@
 import locale
 import logging
 import os
+import re
 from typing import Optional
 
 import omegaconf
-import torch
 from dotenv import load_dotenv
 from langchain.chains.retrieval_qa.base import RetrievalQA
 from langchain.prompts.prompt import PromptTemplate
 from langchain.retrievers import MultiQueryRetriever
 from langchain.retrievers.contextual_compression import ContextualCompressionRetriever
+from langchain_chroma import Chroma
 from langchain_cohere import CohereRerank
-from langchain_community.embeddings import HuggingFaceInstructEmbeddings
-from langchain_community.vectorstores.faiss import FAISS
+from langchain_experimental.open_clip import OpenCLIPEmbeddings
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai.chat_models import ChatOpenAI
-from langfuse import Langfuse
-from langfuse.callback import CallbackHandler
 from ragas import EvaluationDataset
+from utils.general_utils import load_embedding_model
 
 
 class InferencePipeline:
@@ -53,93 +52,24 @@ class InferencePipeline:
             cfg (omegaconf.DictConfig): Configuration dictionary for the pipeline.
             logger (Optional[logging.Logger], optional): Logger instance. If not provided, uses default logger.
         """
+        load_dotenv()
         self.cfg = cfg
         self.logger = logger or logging.getLogger(__name__)
-
-        load_dotenv()
-        self.langfuse = Langfuse(
-            secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
-            public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
-            host=os.getenv("host"),
+        self.embeddings_model_name: str = re.sub(
+            r'[<>:"/\\|?*]',
+            "_",
+            self.cfg.embeddings.text_embeddings.model_name.split("/")[-1],
         )
-        self.langfuse_handler = CallbackHandler()
-
-        self.embedding_model: Optional[HuggingFaceInstructEmbeddings] = None
-        self.vectordb: Optional[FAISS] = None
-        self.llm: Optional[ChatOpenAI] = None
-        self.retriever = None
-        self.qa_chain = None
-        self.qns_list: Optional[list] = None
-        self.ans_list: Optional[list] = None
-        self.answer_file: Optional[str] = None
-        self.cleaned_text_splitter: Optional[str] = None
-
-    def load_embedding_model(self) -> HuggingFaceInstructEmbeddings:
-        """
-        Loads a sentence-transformers embedding model as specified in the config.
-
-        Returns:
-            HuggingFaceInstructEmbeddings: The loaded embedding model.
-            str: Human-readable name of the text splitting strategy.
-
-        Raises:
-            Exception: If loading the model fails.
-        """
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        embeddings_model_name = self.cfg.embeddings.embeddings_path.split("/")[4]
-        self.cleaned_text_splitter = self.cfg.embeddings.embeddings_path.split("/")[
-            3
-        ].replace("_", " ")
-
-        self.logger.info(
-            f"Loading embedding model, {embeddings_model_name} on {device.upper()}\n"
+        self.persist_directory: str = os.path.join(
+            self.cfg.embeddings.text_embeddings.embeddings_path,
+            self.cfg.text_splitter.name,
+            self.embeddings_model_name,
         )
 
-        try:
-            self.embedding_model = HuggingFaceInstructEmbeddings(
-                model_name="/".join(["sentence-transformers", embeddings_model_name]),
-                show_progress=self.cfg.embeddings.show_progress,
-                model_kwargs={"device": device},
-            )
-            self.logger.info(
-                f"Embedding model, {embeddings_model_name} loaded successfully.\n"
-            )
-
-        except Exception as e:
-            self.logger.error(f"Failed to load embedding model: {e}")
-            raise
-
-        return self.embedding_model, self.cleaned_text_splitter
-
-    def _load_vectordb(self) -> None:
-        """
-        Loads a FAISS vector database from the path specified in config.
-
-        Raises:
-            FileNotFoundError: If the specified FAISS path does not exist.
-            Exception: If loading the FAISS index fails.
-        """
-        if not os.path.exists(self.cfg.embeddings.embeddings_path):
-            raise FileNotFoundError(
-                f"Vector database path does not exist: {self.cfg.embeddings.embeddings_path}"
-            )
-
-        self.logger.info(
-            f"Loading Vector database @ {self.cfg.embeddings.embeddings_path}.\n"
+    def _load_vectordb(self, vector_db_path: str, embedding_function):
+        return Chroma(
+            persist_directory=vector_db_path, embedding_function=embedding_function
         )
-
-        try:
-            self.vectordb = FAISS.load_local(
-                folder_path=self.cfg.embeddings.embeddings_path,
-                embeddings=self.embedding_model,
-                index_name=self.cfg.embeddings.index_name,
-                allow_dangerous_deserialization=True,
-            )
-            self.logger.info("Vector database loaded successfully.\n")
-
-        except Exception as e:
-            self.logger.error(f"Failed to load vector database: {e}")
-            raise
 
     def _load_prompt(
         self, path: str, input_variables: Optional[list] = None
@@ -373,8 +303,24 @@ class InferencePipeline:
         Returns:
             EvaluationDataset: Dataset with results from the full inference pipeline.
         """
-        self.load_embedding_model()
-        self._load_vectordb()
+        text_embedding_model = load_embedding_model(
+            model_name=self.cfg.embeddings.text_embeddings.model_name,
+            show_progress=self.cfg.embeddings.text_embeddings.show_progress,
+        )
+        text_vectordb = self._load_vectordb(
+            vector_db_path=self.cfg.embeddings.text_embeddings.embeddings_path,
+            embedding_function=text_embedding_model,
+        )
+        image_vectordb = self._load_vectordb(
+            vector_db_path=self.cfg.embeddings.image_embeddings.embeddings_path,
+            embedding_function=OpenCLIPEmbeddings(
+                model_name=self.cfg.embeddings.image_embeddings.model_name,
+                checkpoint=self.cfg.embeddings.image_embeddings.checkpoint,
+                model=None,
+                preprocess=None,
+                tokenizer=None,
+            ),
+        )
         self._initialize_llm()
         self._create_retriever()
         self._create_qa_chain()
