@@ -4,7 +4,6 @@ import re
 from typing import List, Optional
 
 import omegaconf
-import torch
 from langchain.docstore.document import Document
 from langchain.text_splitter import (
     RecursiveCharacterTextSplitter,
@@ -13,6 +12,7 @@ from langchain.text_splitter import (
 from langchain_chroma import Chroma
 from langchain_experimental.text_splitter import SemanticChunker
 from langchain_huggingface import HuggingFaceEmbeddings
+from utils.general_utils import load_embedding_model
 
 
 class TextEmbeddings:
@@ -37,18 +37,6 @@ class TextEmbeddings:
         )
 
         os.makedirs(self.persist_directory, exist_ok=True)
-
-    def _load_embeddings_model(self):
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.logger.info(f"Embedding model will be loaded to {device}.")
-        embedding_model = HuggingFaceEmbeddings(
-            model_name=self.cfg.embeddings.text_embeddings.model_name,
-            show_progress=self.cfg.embeddings.text_embeddings.show_progress,
-            model_kwargs={"device": device},
-        )
-        self.logger.info(f"Embedding Model loaded to {device.upper()}.")
-
-        return embedding_model
 
     def _split_text(
         self,
@@ -103,6 +91,9 @@ class TextEmbeddings:
 
     def generate_text_vectordb(self):
         self.logger.info("Embedding text.")
-        embedding_model = self._load_embeddings_model()
+        embedding_model = load_embedding_model(
+            model_name=self.cfg.embeddings.text_embeddings.model_name,
+            show_progress=self.cfg.embeddings.text_embeddings.show_progress,
+        )
         documents = self._split_text(embedding_model=embedding_model)
         self._embed_document(embedding_model=embedding_model, documents=documents)
