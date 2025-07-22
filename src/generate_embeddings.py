@@ -16,7 +16,7 @@ from utils.general_utils import setup_logging
 from utils.process_data import EPUBProcessor
 
 
-@hydra.main(version_base=None, config_path="../conf", config_name="training.yaml")
+@hydra.main(version_base=None, config_path="../conf", config_name="embeddings.yaml")
 def main(cfg):
     """Main function to execute the embedding pipeline.
 
