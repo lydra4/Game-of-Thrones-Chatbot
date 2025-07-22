@@ -3,6 +3,7 @@ import logging.config
 import os
 
 import yaml
+from langchain_huggingface import HuggingFaceEmbeddings
 
 logger = logging.getLogger(__name__)
 
@@ -35,3 +36,16 @@ def setup_logging(
         )
         logger.info(error)
         logger.info("Logging config file is not found. Basic config is used.")
+
+
+def load_embedding_model(model_name: str, show_progress: bool, **kwargs):
+    logger.info("Loading embedding model.")
+    try:
+        embedding_model = HuggingFaceEmbeddings(
+            model_name=model_name, show_progress=show_progress, model_kwargs={**kwargs}
+        )
+    except Exception as e:
+        logger.error(f"Failed to load embedding mode: '{model_name}': {e}.")
+        raise ValueError(e)
+    logger.info("Embedding model loaded.")
+    return embedding_model
