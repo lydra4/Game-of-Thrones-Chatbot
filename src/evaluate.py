@@ -10,13 +10,13 @@ import logging
 import os
 
 import hydra
-import omegaconf
 from evaluation.evaluation_pipeline import EvaluationPipeline
+from omegaconf import DictConfig
 from utils.general_utils import setup_logging
 
 
 @hydra.main(version_base=None, config_path="../conf", config_name="evaluate.yaml")
-def main(cfg: omegaconf.dictconfig):
+def main(cfg: DictConfig):
     """Main function to set up logging and run the evaluation pipeline.
 
     Args:
