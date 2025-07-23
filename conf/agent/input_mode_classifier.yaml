@@ -1,0 +1,7 @@
+template: |
+  You are a classifier that decides whether the input is text, image, or both.
+  Input: {query}
+  Mode:
+
+input_variables:
+  - query
