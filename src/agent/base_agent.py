@@ -2,7 +2,8 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any, List, Optional, Union
 
-from langchain.agents import initialize_agent
+from langchain.agents import AgentExecutor, ZeroShotAgent
+from langchain.chains.llm import LLMChain
 from langchain.prompts import PromptTemplate
 from langchain.tools import BaseTool
 from omegaconf import DictConfig
@@ -20,16 +21,22 @@ class BaseAgent(ABC):
         self.llm = llm
         self.tools = tools or []
         self.logger = logger or logging.getLogger(__name__)
-        self.agent = initialize_agent(tools=self.tools, llm=self.llm, verbose=True)
+        self.agent = self._initialize_agent()
 
         self.logger.debug(f"{self.__class__.__name__} initialized with config: {cfg}")
 
-    def open_prompt_template(
-        self,
-        template: str,
-        input_variables: List[str],
-    ) -> PromptTemplate:
-        return PromptTemplate(template=template, input_variables=input_variables)
+    def _initialize_agent(self):
+        prompt = PromptTemplate(
+            template=self.cfg.agent.input_mode_classifier.template,
+            input_variables=self.cfg.agent.input_mode_classifier.input_variables,
+        )
+        llm_chain = LLMChain(
+            llm=self.llm,
+            prompt=prompt,
+        )
+        agent = ZeroShotAgent(llm_chain=llm_chain)
+
+        return AgentExecutor(agent=agent, tools=self.tools, verbose=True)
 
     @abstractmethod
     def run(self, input_data: Union[str, List[str]]):
