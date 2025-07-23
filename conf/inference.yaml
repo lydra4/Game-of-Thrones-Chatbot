@@ -3,3 +3,4 @@ defaults:
   - embeddings/text_embeddings: default
   - embeddings/image_embeddings: default
   - text_splitter: semanticchunker
+  - agent/input_mode_classifier
