@@ -1,0 +1,6 @@
+defaults:
+  - _self_
+  - preprocessing: default
+  - embeddings/text_embeddings@text_embeddings
+  - embeddings/image_embeddings@image_embeddings
+  - text_splitter: semanticchunker
