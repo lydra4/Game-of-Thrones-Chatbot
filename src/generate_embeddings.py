@@ -12,8 +12,8 @@ import os
 import hydra
 from embeddings.image_embeddings import ImageEmbeddings
 from embeddings.text_embeddings import TextEmbeddings
+from preprocessing.epub_processor import EPUBProcessor
 from utils.general_utils import setup_logging
-from utils.process_data import EPUBProcessor
 
 
 @hydra.main(version_base=None, config_path="../conf", config_name="embeddings.yaml")
