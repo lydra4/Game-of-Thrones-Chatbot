@@ -28,10 +28,10 @@ class TextEmbeddings:
         self.embeddings_model_name: str = re.sub(
             r'[<>:"/\\|?*]',
             "_",
-            self.cfg.embeddings.text_embeddings.model_name.split("/")[-1],
+            self.cfg.text_embeddings.model_name.split("/")[-1],
         )
         self.persist_directory: str = os.path.join(
-            self.cfg.embeddings.text_embeddings.embeddings_path,
+            self.cfg.text_embeddings.embeddings_path,
             self.cfg.text_splitter.name,
             self.embeddings_model_name,
         )
@@ -54,7 +54,7 @@ class TextEmbeddings:
             == "sentence_transformers_token_text_splitter"
         ):
             text_splitter = SentenceTransformersTokenTextSplitter(
-                model_name=self.cfg.embeddings.text_embeddings.model_name,
+                model_name=self.cfg.text_embeddings.model_name,
                 chunk_overlap=self.cfg.text_splitter.text_splitter.chunk_overlap,
             )
 
@@ -92,8 +92,8 @@ class TextEmbeddings:
     def generate_text_vectordb(self):
         self.logger.info("Embedding text.")
         embedding_model = load_embedding_model(
-            model_name=self.cfg.embeddings.text_embeddings.model_name,
-            show_progress=self.cfg.embeddings.text_embeddings.show_progress,
+            model_name=self.cfg.text_embeddings.model_name,
+            show_progress=self.cfg.text_embeddings.show_progress,
         )
         documents = self._split_text(embedding_model=embedding_model)
         self._embed_document(embedding_model=embedding_model, documents=documents)

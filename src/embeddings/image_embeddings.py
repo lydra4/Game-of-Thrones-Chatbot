@@ -33,16 +33,16 @@ class ImageEmbeddings:
 
         self.embedding_model = OpenCLIPEmbeddings(
             model=None,
-            model_name=self.cfg.embeddings.image_embeddings.model_name,
-            checkpoint=self.cfg.embeddings.image_embeddings.checkpoint,
+            model_name=self.cfg.image_embeddings.model_name,
+            checkpoint=self.cfg.image_embeddings.checkpoint,
             preprocess=None,
             tokenizer=None,
         )
         model_name_cleaned: str = re.sub(
-            r'[<>:"/\\|?*]', "_", self.cfg.embeddings.image_embeddings.model_name
+            r'[<>:"/\\|?*]', "_", self.cfg.image_embeddings.model_name
         )
         self.persist_directory: str = os.path.join(
-            self.cfg.embeddings.image_embeddings.embeddings_path,
+            self.cfg.image_embeddings.embeddings_path,
             model_name_cleaned,
         )
 
