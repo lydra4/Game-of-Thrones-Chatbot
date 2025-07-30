@@ -22,6 +22,7 @@ def main(cfg):
         cfg (omegaconf.DictConfig): Hydra configuration object containing
             all necessary parameters for inference.
     """
+    print(cfg)
     logger = logging.getLogger(__name__)
     logger.info("Setting up logging configuration")
     setup_logging(
