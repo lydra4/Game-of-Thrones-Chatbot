@@ -44,6 +44,7 @@ gradio==5.38.0
 
 # Model Hub and APIs
 huggingface-hub==0.33.4
+cohere==5.15.0
 
 # Evaluation and Monitoring
 ragas==0.3.0
