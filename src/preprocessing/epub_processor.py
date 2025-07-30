@@ -115,9 +115,7 @@ class EPUBProcessor:
         saved_image_paths = []
         metadata_list = []
 
-        output_dir = os.path.join(
-            self.cfg.embeddings.image_embeddings.output_dir, book_name
-        )
+        output_dir = os.path.join(self.cfg.image_embeddings.output_dir, book_name)
         os.makedirs(output_dir, exist_ok=True)
 
         for item in book.get_items():
