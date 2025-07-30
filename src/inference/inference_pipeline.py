@@ -7,14 +7,11 @@ from typing import Optional
 import omegaconf
 from dotenv import load_dotenv
 from langchain.chains.retrieval_qa.base import RetrievalQA
-from langchain.prompts.prompt import PromptTemplate
 from langchain.retrievers import MultiQueryRetriever
 from langchain.retrievers.contextual_compression import ContextualCompressionRetriever
 from langchain_chroma import Chroma
 from langchain_cohere import CohereRerank
 from langchain_experimental.open_clip import OpenCLIPEmbeddings
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_openai.chat_models import ChatOpenAI
 from ragas import EvaluationDataset
 from utils.general_utils import load_embedding_model
 
@@ -70,84 +67,6 @@ class InferencePipeline:
         return Chroma(
             persist_directory=vector_db_path, embedding_function=embedding_function
         )
-
-    def _load_prompt(
-        self, path: str, input_variables: Optional[list] = None
-    ) -> PromptTemplate:
-        """
-        Loads a prompt template from a file.
-
-        Args:
-            path (str): Path to the prompt template file.
-            input_variables (Optional[list], optional): List of expected variables in the prompt.
-
-        Returns:
-            PromptTemplate: Parsed prompt template object.
-
-        Raises:
-            Exception: If loading or reading the prompt file fails.
-        """
-        file_name = os.path.basename(path)
-        self.logger.info(f"Loading Prompt Template: {file_name}.\n")
-
-        try:
-            with open(
-                file=path,
-                mode="r",
-                encoding="utf-8",
-            ) as f:
-                template = f.read()
-
-            prompt = PromptTemplate(
-                template=template, input_variables=input_variables or []
-            )
-            self.logger.info(f"{file_name} loaded successfully.\n")
-
-            return prompt
-
-        except Exception as e:
-            self.logger.error(f"Failed to load {file_name}: {e}")
-            raise
-
-    def _initialize_llm(self) -> None:
-        """
-        Initializes the language model (LLM) such as OpenAI GPT or Google Gemini.
-
-        Raises:
-            ValueError: If the required API key is missing.
-            Exception: If the model initialization fails.
-        """
-        load_dotenv()
-
-        model = self.cfg.llm.model
-        temperature = self.cfg.llm.temperature
-        api_key_env_var = "OPENAI_API_KEY" if "gpt-" in model else "GEMINI_API_KEY"
-        api_key = os.getenv(api_key_env_var)
-
-        if not api_key:
-            raise ValueError(f"{api_key_env_var} not found in enviroment variables.")
-
-        self.logger.info(f"Initializing {model}.\n")
-
-        try:
-            if "gpt-" in model:
-                self.llm = ChatOpenAI(
-                    model=model, temperature=temperature, api_key=api_key
-                )
-
-            elif "gemini" in model:
-                self.llm = ChatGoogleGenerativeAI(
-                    model=model, temperature=temperature, api_key=api_key
-                )
-
-            else:
-                raise ValueError(f"Unsupported model: {model}")
-
-            self.logger.info(f"LLM successfully initialized with model: {model}.\n")
-
-        except Exception as e:
-            self.logger.error(f"Failed to initialize {model}: {e}")
-            raise
 
     def _create_retriever(self) -> None:
         """
