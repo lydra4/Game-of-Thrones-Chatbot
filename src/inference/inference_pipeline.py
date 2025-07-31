@@ -4,6 +4,7 @@ import re
 from typing import Optional
 
 import omegaconf
+from agent.input_mode_classifier_agent import InputModeClassifierAgent
 from dotenv import load_dotenv
 from langchain.chains.retrieval_qa.base import RetrievalQA
 from langchain.retrievers import MultiQueryRetriever
@@ -12,7 +13,7 @@ from langchain_chroma import Chroma
 from langchain_cohere import CohereRerank
 from langchain_experimental.open_clip import OpenCLIPEmbeddings
 from ragas import EvaluationDataset
-from utils.general_utils import load_embedding_model
+from utils.general_utils import initialize_llm, load_embedding_model
 
 
 class InferencePipeline:
@@ -85,6 +86,14 @@ class InferencePipeline:
         self.image_vector_store = Chroma(
             persist_directory=image_vector_store_dir,
             embedding_function=image_embedding_model,
+        )
+
+        self.input_classifier_agent = InputModeClassifierAgent(
+            cfg=self.cfg,
+            llm=initialize_llm(
+                model_name=self.cfg.model, temperature=self.cfg.temperature
+            ),
+            logger=self.logger,
         )
 
     def _create_retriever(self) -> None:
