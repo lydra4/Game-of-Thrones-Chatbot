@@ -1,6 +1,6 @@
 defaults:
   - _self_
   - text_splitter: semanticchunker
-  - agent/input_mode_classifier
+  - agent/input_mode_classifier@input_mode_classifier
   - embeddings/text_embeddings@text_embeddings
   - embeddings/image_embeddings@image_embeddings
