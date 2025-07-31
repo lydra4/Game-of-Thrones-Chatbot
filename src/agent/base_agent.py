@@ -27,8 +27,8 @@ class BaseAgent(ABC):
 
     def _initialize_agent(self):
         prompt = PromptTemplate(
-            template=self.cfg.agent.input_mode_classifier.template,
-            input_variables=self.cfg.agent.input_mode_classifier.input_variables,
+            template=self.cfg.template,
+            input_variables=self.cfg.input_variables,
         )
         llm_chain = LLMChain(
             llm=self.llm,
