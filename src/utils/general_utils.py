@@ -1,9 +1,13 @@
 import logging
 import logging.config
 import os
+from typing import Union
 
 import yaml
+from dotenv import load_dotenv
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_openai.chat_models import ChatOpenAI
 
 logger = logging.getLogger(__name__)
 
@@ -49,3 +53,38 @@ def load_embedding_model(model_name: str, show_progress: bool = True, **kwargs):
         raise ValueError(e)
     logger.info("Embedding model loaded.")
     return embedding_model
+
+
+def initialize_llm(model_name: str, temperature: Union[float, int]):
+    load_dotenv()
+    model_name_cleaned = model_name.strip().lower()
+    api_key_env_var = (
+        "OPENAI_API_KEY" if "gpt-" in model_name_cleaned else "GEMINI_API_KEY"
+    )
+    api_key = os.getenv(api_key_env_var)
+
+    if not api_key:
+        raise ValueError(f"{api_key_env_var} not found in enviroment variables.")
+
+    logger.info(f"Initializing LLM:{model_name_cleaned}")
+
+    try:
+        if model_name_cleaned.startswith("gpt-"):
+            return ChatOpenAI(
+                model=model_name_cleaned,
+                temperature=temperature,
+                api_key=api_key,
+            )
+
+        elif model_name_cleaned.startswith("gemini-"):
+            return ChatGoogleGenerativeAI(
+                model=model_name_cleaned,
+                temperature=temperature,
+                api_key=api_key,
+            )
+        else:
+            raise ValueError(f"Unsupported model: {model_name}.")
+
+    except Exception as e:
+        logger.error(f"Failed to initialize LLM: {model_name_cleaned}.")
+        raise
