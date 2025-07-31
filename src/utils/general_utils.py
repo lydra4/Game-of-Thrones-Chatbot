@@ -38,7 +38,7 @@ def setup_logging(
         logger.info("Logging config file is not found. Basic config is used.")
 
 
-def load_embedding_model(model_name: str, show_progress: bool, **kwargs):
+def load_embedding_model(model_name: str, show_progress: bool = True, **kwargs):
     logger.info("Loading embedding model.")
     try:
         embedding_model = HuggingFaceEmbeddings(
