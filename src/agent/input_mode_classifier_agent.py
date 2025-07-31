@@ -16,5 +16,5 @@ class InputModeClassifierAgent(BaseAgent):
     ):
         super().__init__(cfg=cfg, llm=llm, tools=tools, logger=logger)
 
-    def run(self, query: str):
+    def run(self, query: str) -> List[str]:
         return super().run(input_data=query)
