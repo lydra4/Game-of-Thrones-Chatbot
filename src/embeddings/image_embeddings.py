@@ -32,9 +32,9 @@ class ImageEmbeddings:
             raise ValueError("Mismatch between number of saved images and metadata.")
 
         self.embedding_model = OpenCLIPEmbeddings(
-            model=None,
             model_name=self.cfg.image_embeddings.model_name,
             checkpoint=self.cfg.image_embeddings.checkpoint,
+            model=None,
             preprocess=None,
             tokenizer=None,
         )
