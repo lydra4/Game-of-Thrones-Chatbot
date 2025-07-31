@@ -1,4 +1,3 @@
-import locale
 import logging
 import os
 import re
@@ -52,20 +51,40 @@ class InferencePipeline:
         load_dotenv()
         self.cfg = cfg
         self.logger = logger or logging.getLogger(__name__)
-        self.embeddings_model_name: str = re.sub(
-            r'[<>:"/\\|?*]',
-            "_",
-            self.cfg.embeddings.text_embeddings.model_name.split("/")[-1],
-        )
-        self.persist_directory: str = os.path.join(
-            self.cfg.embeddings.text_embeddings.embeddings_path,
-            self.cfg.text_splitter.name,
-            self.embeddings_model_name,
+        image_embedding_model = OpenCLIPEmbeddings(
+            model_name=self.cfg.image_embeddings.model_name,
+            checkpoint=self.cfg.image_embeddings.checkpoint,
+            model=None,
+            preprocess=None,
+            tokenizer=None,
         )
 
-    def _load_vectordb(self, vector_db_path: str, embedding_function):
-        return Chroma(
-            persist_directory=vector_db_path, embedding_function=embedding_function
+        text_embedding_model = load_embedding_model(
+            model_name=self.cfg.text_embeddings.model_name
+        )
+
+        text_vector_store_dir: str = os.path.join(
+            self.cfg.text_embeddings.embeddings_path,
+            self.cfg.text_splitter.name,
+            re.sub(
+                r'[<>:"/\\|?*]',
+                "_",
+                self.cfg.text_embeddings.model_name.split("/")[-1],
+            ),
+        )
+
+        image_vector_store_dir: str = os.path.join(
+            self.cfg.image_embeddings.embeddings_path,
+            re.sub(r'[<>:"/\\|?*]', "_", self.cfg.image_embeddings.model_name),
+        )
+
+        self.text_vector_store = Chroma(
+            persist_directory=text_vector_store_dir,
+            embedding_function=text_embedding_model,
+        )
+        self.image_vector_store = Chroma(
+            persist_directory=image_vector_store_dir,
+            embedding_function=image_embedding_model,
         )
 
     def _create_retriever(self) -> None:
@@ -222,26 +241,5 @@ class InferencePipeline:
         Returns:
             EvaluationDataset: Dataset with results from the full inference pipeline.
         """
-        text_embedding_model = load_embedding_model(
-            model_name=self.cfg.embeddings.text_embeddings.model_name,
-            show_progress=self.cfg.embeddings.text_embeddings.show_progress,
-        )
-        text_vectordb = self._load_vectordb(
-            vector_db_path=self.cfg.embeddings.text_embeddings.embeddings_path,
-            embedding_function=text_embedding_model,
-        )
-        image_vectordb = self._load_vectordb(
-            vector_db_path=self.cfg.embeddings.image_embeddings.embeddings_path,
-            embedding_function=OpenCLIPEmbeddings(
-                model_name=self.cfg.embeddings.image_embeddings.model_name,
-                checkpoint=self.cfg.embeddings.image_embeddings.checkpoint,
-                model=None,
-                preprocess=None,
-                tokenizer=None,
-            ),
-        )
-        self._initialize_llm()
-        self._create_retriever()
-        self._create_qa_chain()
-        self._open_questions()
+
         return self._infer()
