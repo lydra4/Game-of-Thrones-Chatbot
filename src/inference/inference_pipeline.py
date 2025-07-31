@@ -17,38 +17,9 @@ from utils.general_utils import initialize_llm, load_embedding_model
 
 
 class InferencePipeline:
-    """
-    A pipeline for performing Retrieval-Augmented Generation (RAG) inference.
-
-    This pipeline integrates embedding models, vector databases, retrieval mechanisms,
-    and language models to generate contextually relevant responses from a given set of questions.
-
-    Attributes:
-        cfg (omegaconf.DictConfig): Configuration dictionary for the pipeline.
-        logger (logging.Logger): Logger instance for capturing pipeline logs.
-        langfuse (Langfuse): Langfuse instance for observability.
-        langfuse_handler (CallbackHandler): Langfuse callback handler.
-        embedding_model (HuggingFaceInstructEmbeddings): Embedding model used for vectorizing text.
-        vectordb (FAISS): FAISS-based vector store for semantic search.
-        llm (Union[ChatOpenAI, ChatGoogleGenerativeAI]): Language model for answering questions.
-        retriever: Document retriever instance.
-        qa_chain (RetrievalQA): QA chain combining retriever and LLM.
-        qns_list (list): List of input questions.
-        ans_list (list): List of generated answers.
-        answer_file (str): File path to store inference results.
-        cleaned_text_splitter (str): Human-readable name of text chunking strategy.
-    """
-
     def __init__(
         self, cfg: omegaconf.DictConfig, logger: Optional[logging.Logger] = None
     ) -> None:
-        """
-        Initializes the inference pipeline with configuration and optional logger.
-
-        Args:
-            cfg (omegaconf.DictConfig): Configuration dictionary for the pipeline.
-            logger (Optional[logging.Logger], optional): Logger instance. If not provided, uses default logger.
-        """
         load_dotenv()
         self.cfg = cfg
         self.logger = logger or logging.getLogger(__name__)
@@ -89,7 +60,7 @@ class InferencePipeline:
         )
 
         self.input_classifier_agent = InputModeClassifierAgent(
-            cfg=self.cfg,
+            cfg=self.cfg.input_mode_classifier,
             llm=initialize_llm(
                 model_name=self.cfg.model, temperature=self.cfg.temperature
             ),
@@ -97,14 +68,6 @@ class InferencePipeline:
         )
 
     def _create_retriever(self) -> None:
-        """
-        Creates a retriever to search the FAISS vector database and optionally wraps it with:
-            - MultiQueryRetriever for diverse reformulations.
-            - CohereRerank for reranking results.
-
-        Raises:
-            ValueError: If reranking is enabled but the Cohere API key is not found.
-        """
         self.logger.info("Initializing document retriever.\n")
         retriever = self.vectordb.as_retriever(
             search_kwargs={
@@ -147,9 +110,6 @@ class InferencePipeline:
             self.retriever = retriever
 
     def _create_qa_chain(self):
-        """
-        Builds the RetrievalQA chain using the selected prompt, retriever, and LLM.
-        """
         prompt = self._load_prompt(
             path=self.cfg.path_to_qa_prompt, input_variables=["context", "question"]
         )
@@ -164,12 +124,6 @@ class InferencePipeline:
         )
 
     def _open_questions(self):
-        """
-        Loads a list of questions and their reference answers from the configured text file.
-
-        Raises:
-            Exception: If the file cannot be read or parsed.
-        """
         self.logger.info("Loading questions.\n")
 
         try:
@@ -188,16 +142,6 @@ class InferencePipeline:
             raise
 
     def _infer(self):
-        """
-        Runs inference over the questions using the QA chain and saves responses to a file.
-
-        Returns:
-            EvaluationDataset: Dataset object containing question, answer, context, and references.
-            int: Number of questions processed.
-
-        Raises:
-            Exception: If inference or file writing fails.
-        """
         folder_to_answers = os.path.dirname(self.cfg.llm.path_to_ans)
         os.makedirs(name=folder_to_answers, exist_ok=True)
 
@@ -243,12 +187,6 @@ class InferencePipeline:
 
         return EvaluationDataset.from_list(data=data_list), len(self.qns_list)
 
-    def run_inference(self) -> EvaluationDataset:
-        """
-        Executes the full RAG pipeline: load models, create retriever, load questions, and run inference.
-
-        Returns:
-            EvaluationDataset: Dataset with results from the full inference pipeline.
-        """
-
-        return self._infer()
+    def run_inference(self, query: str):
+        output_modes = self.input_classifier_agent.run(query=query)
+        pass
