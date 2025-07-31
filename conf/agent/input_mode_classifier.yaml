@@ -1,5 +1,8 @@
 template: |
-  You are a classifier that decides whether the input is text, image, or both.
+  You are a strict classifier that decides whether the input contains text, image, or both.
+
+  Respond with a Python-style list of strings using only the allowed values: "text" and "image".
+
   Input: {query}
   Mode:
 
