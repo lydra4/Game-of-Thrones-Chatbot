@@ -4,3 +4,6 @@ defaults:
   - agent/input_mode_classifier@input_mode_classifier
   - embeddings/text_embeddings@text_embeddings
   - embeddings/image_embeddings@image_embeddings
+
+model: gemini-2.0-flash-lite
+temperature: 1.0
