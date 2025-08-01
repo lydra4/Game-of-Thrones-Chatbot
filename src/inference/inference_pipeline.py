@@ -188,4 +188,4 @@ class InferencePipeline:
         return EvaluationDataset.from_list(data=data_list), len(self.qns_list)
 
     def run_inference(self, query: str):
-        return self.input_classifier_agent.run(query=query)
+        input_mode = self.input_classifier_agent.run(input_data=query)
