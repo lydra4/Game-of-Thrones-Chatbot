@@ -4,7 +4,7 @@ import re
 from typing import Optional
 
 import omegaconf
-from agent.input_mode_classifier_agent import OutputModeClassifierAgent
+from agent.output_mode_classifier_agent import OutputModeClassifierAgent
 from dotenv import load_dotenv
 from langchain.chains.retrieval_qa.base import RetrievalQA
 from langchain.retrievers import MultiQueryRetriever
