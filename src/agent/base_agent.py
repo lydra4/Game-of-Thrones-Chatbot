@@ -2,10 +2,10 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any, List, Optional, Union
 
-from langchain.agents import AgentExecutor, ZeroShotAgent
-from langchain.chains.llm import LLMChain
-from langchain.prompts import PromptTemplate
+from langchain.agents import AgentExecutor
+from langchain.agents.openai_tools.base import create_openai_tools_agent
 from langchain.tools import BaseTool
+from langchain_core.prompts import ChatPromptTemplate
 from omegaconf import DictConfig
 
 
@@ -26,15 +26,15 @@ class BaseAgent(ABC):
         self.logger.debug(f"{self.__class__.__name__} initialized with config: {cfg}")
 
     def _initialize_agent(self):
-        prompt = PromptTemplate(
+        prompt = ChatPromptTemplate.from_template(
             template=self.cfg.template,
             input_variables=self.cfg.input_variables,
         )
-        llm_chain = LLMChain(
+        agent = create_openai_tools_agent(
             llm=self.llm,
+            tools=self.tools,
             prompt=prompt,
         )
-        agent = ZeroShotAgent(llm_chain=llm_chain)
 
         return AgentExecutor(agent=agent, tools=self.tools, verbose=True)
 
