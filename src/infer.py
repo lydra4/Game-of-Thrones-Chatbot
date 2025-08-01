@@ -22,7 +22,6 @@ def main(cfg):
         cfg (omegaconf.DictConfig): Hydra configuration object containing
             all necessary parameters for inference.
     """
-    print(cfg)
     logger = logging.getLogger(__name__)
     logger.info("Setting up logging configuration")
     setup_logging(
@@ -30,9 +29,11 @@ def main(cfg):
             hydra.utils.get_original_cwd(), "conf", "logging.yaml"
         )
     )
+    query = "Does Bronn fight for Tyrion in his trial by combat at the Eyrie?"
 
     infer_pipeline = InferencePipeline(cfg=cfg, logger=logger)
-    infer_pipeline.run_inference()
+    output_modes = infer_pipeline.run_inference(query=query)
+    print(output_modes)
 
 
 if __name__ == "__main__":
