@@ -4,7 +4,7 @@ import re
 from typing import Optional
 
 import omegaconf
-from agent.input_mode_classifier_agent import InputModeClassifierAgent
+from agent.input_mode_classifier_agent import OutputModeClassifierAgent
 from dotenv import load_dotenv
 from langchain.chains.retrieval_qa.base import RetrievalQA
 from langchain.retrievers import MultiQueryRetriever
@@ -59,8 +59,8 @@ class InferencePipeline:
             embedding_function=image_embedding_model,
         )
 
-        self.input_classifier_agent = InputModeClassifierAgent(
-            cfg=self.cfg.input_mode_classifier,
+        self.output_classifier_agent = OutputModeClassifierAgent(
+            cfg=self.cfg.output_mode_classifier,
             llm=initialize_llm(
                 model_name=self.cfg.model, temperature=self.cfg.temperature
             ),
@@ -188,4 +188,4 @@ class InferencePipeline:
         return EvaluationDataset.from_list(data=data_list), len(self.qns_list)
 
     def run_inference(self, query: str):
-        input_mode = self.input_classifier_agent.run(input_data=query)
+        input_mode = self.output_classifier_agent.run(input_data=query)
