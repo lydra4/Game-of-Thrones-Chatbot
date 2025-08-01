@@ -33,7 +33,6 @@ def main(cfg):
 
     infer_pipeline = InferencePipeline(cfg=cfg, logger=logger)
     output_modes = infer_pipeline.run_inference(query=query)
-    print(output_modes)
 
 
 if __name__ == "__main__":
