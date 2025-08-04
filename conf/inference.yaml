@@ -5,5 +5,5 @@ defaults:
   - embeddings/text_embeddings@text_embeddings
   - embeddings/image_embeddings@image_embeddings
 
-model: gemini-2.0-flash-lite
+model: gemini-2.5-pro
 temperature: 0.0
