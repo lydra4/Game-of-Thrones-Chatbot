@@ -1,7 +1,9 @@
+import ast
 import logging
 import logging.config
 import os
-from typing import Union
+import re
+from typing import List, Union
 
 import yaml
 from dotenv import load_dotenv
@@ -90,3 +92,14 @@ def initialize_llm(model_name: str, temperature: Union[float, int]):
     except Exception as e:
         logger.error(f"Failed to initialize LLM: {model_name_cleaned}.")
         raise
+
+
+def extract_list_from_string(text: str) -> List[str]:
+    match = re.search(r"\[.*?\]", text)
+    if match:
+        parsed_list = ast.literal_eval(match.group())
+
+        return parsed_list
+
+    else:
+        raise ValueError(f"No list found in text: {text}.")
