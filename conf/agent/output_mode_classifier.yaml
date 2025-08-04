@@ -1,5 +1,5 @@
 template: |
-  You are a strict classifier that determines whether the user query requires a response in "text", "image", or both.
+  You are a strict classifier that determines whether the question requires an answer in "text", "image", or both.
 
   Only respond with a valid Python list of strings, using **only** these values: "text" and "image".
 
