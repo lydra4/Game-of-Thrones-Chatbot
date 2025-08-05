@@ -1,4 +1,4 @@
-name: gotchatbot
+name: gotchatbot-agentic-modality-rag
 channels:
   - conda-forge
   - defaults
