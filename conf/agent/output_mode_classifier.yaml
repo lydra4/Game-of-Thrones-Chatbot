@@ -10,8 +10,8 @@ template: |
 
   Do not include explanations or any other text.
 
-  Input: {query}  
+  Input: {input_data}  
   Mode:
 
 input_variables:
-  - query
+  - input_data
