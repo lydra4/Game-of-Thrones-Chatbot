@@ -1,29 +1,17 @@
-# Path to the directory containing the EPUB files
 path: "./data/datasets/"
-# File extension to filter files to process
 file_extension: ".epub"
 
-# Regex pattern to match one or more whitespace characters (tabs, newlines, etc.)
 whitespace: r"\s+"
-# Replacement string for whitespace normalization (e.g., collapse multiple spaces to a single space)
 whitespace_replacement: " "
 
-# Regex pattern to detect URLs starting with http or www
 url: r"http\S+|www\S+"
-# Replacement string for URLs (empty string means URLs will be removed)
 url_replacement: ""
 
-# Regex pattern to remove all non-alphanumeric characters except basic punctuation
 non_alphanumeric: r"[^A-Za-z0-9\s\.,;:\'\"\?\!\-]"
-# Replacement string for non-alphanumeric characters (empty string means they will be removed)
 non_alphanumeric_replacement: ""
 
-# Regex pattern to collapse repeated non-alphanumeric characters (e.g., "!!!" → "!")
 consecutive_non_alphanumeric: r"([^A-Za-z0-9\s])\1+"
-# Keeps only one instance of the repeated character
 consecutive_non_alphanumeric_replacement: r"\1"
 
-# Regex pattern to normalize multiple blank lines into a single paragraph break
-normalizes_newlines: r"\n\s*\n"
-# Replacement string for normalized paragraph breaks
+newlines_pattern: r"\n\s*\n"
 two_lines: "\n\n"
