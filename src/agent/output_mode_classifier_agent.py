@@ -16,12 +16,14 @@ class OutputModeClassifierAgent(BaseAgent):
         super().__init__(cfg=cfg, llm=llm, logger=logger)
 
     def run(self, input_data: Union[str, List[str]]):
-        self.logger.info(f"Classifying query: {input_data}")
+        self.logger.info(f"Classifying query: '{input_data}'")
         input_mode = super().run(input_data=input_data)
         input_mode = input_mode.content
         input_mode = extract_list_from_string(text=input_mode)
         if not input_mode:
             raise ValueError("Output agent return an empty list.")
 
-        self.logger.info(f"Query: {input_data}, classified as {input_mode}.")
+        self.logger.info(
+            f"Query: {input_data}, classified as '{' and '.join(input_mode)}'."
+        )
         return input_mode
