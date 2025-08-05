@@ -1,7 +1,11 @@
 name: gotchatbot-unified-vector-rag
 channels:
-  - defaults
   - conda-forge
+  - defaults
 dependencies:
-  - python=3.11.11
-  - pip=24.2
+  - python=3.12.10
+  - pip=24.3
+  - conda-forge::mamba
+  - pip:
+      - -r requirements.txt
+      - -r dev-requirements.txt
