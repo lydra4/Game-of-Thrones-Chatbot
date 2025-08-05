@@ -10,12 +10,12 @@ import logging
 import os
 
 import hydra
-from embeddings.perform_embeddings import PerformEmbeddings
+from embeddings.text_embeddings import TextEmbeddings
 from preprocessing.epub_processor import EPUBProcessor
 from utils.general_utils import setup_logging
 
 
-@hydra.main(version_base=None, config_path="../conf", config_name="training.yaml")
+@hydra.main(version_base=None, config_path="../conf", config_name="embeddings.yaml")
 def main(cfg):
     """Main function to execute the embedding pipeline.
 
@@ -41,7 +41,7 @@ def main(cfg):
         epub_processor.load()
     )
 
-    perform_embeddings = PerformEmbeddings(
+    perform_embeddings = TextEmbeddings(
         cfg=cfg, logger=logger, documents=extracted_documents
     )
     perform_embeddings.generate_vectordb()
