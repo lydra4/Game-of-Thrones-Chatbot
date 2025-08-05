@@ -1,4 +1,4 @@
-name: gotchatbot
+name: gotchatbot-unified-vector-rag
 channels:
   - defaults
   - conda-forge
