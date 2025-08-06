@@ -17,17 +17,7 @@ from utils.general_utils import setup_logging
 
 @hydra.main(version_base=None, config_path="../conf", config_name="embeddings.yaml")
 def main(cfg):
-    """Main function to execute the embedding pipeline.
-
-    This function performs the following steps:
-    1. Sets up logging configuration.
-    2. Loads and preprocesses EPUB documents using `EPUBProcessor`.
-    3. Generates embeddings and stores them in a vector database using `PerformEmbeddings`.
-
-    Args:
-        cfg (omegaconf.DictConfig): Hydra configuration object containing
-            all necessary parameters for the embedding pipeline.
-    """
+    print(cfg)
     logger = logging.getLogger(__name__)
     logger.info("Setting up logging configuration.\n")
     setup_logging(
