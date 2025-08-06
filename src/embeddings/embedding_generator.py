@@ -14,6 +14,7 @@ from langchain_chroma import Chroma
 from langchain_experimental.text_splitter import SemanticChunker
 from langchain_huggingface import HuggingFaceEmbeddings
 from omegaconf import DictConfig
+from utils.general_utils import load_embedding_model
 
 
 class GenerateEmbeddings:
@@ -93,6 +94,7 @@ class GenerateEmbeddings:
         self.logger.info("Successfully generated and saved Vector Embeddings.")
 
     def generate_vectordb(self):
-        self.logger.info("Starting document processing and generating embeddings.\n")
-        self._split_text()
-        self._embed_documents()
+        self.logger.info("Generating Embeddings.")
+        embedding_model = load_embedding_model(
+            model_name=self.cfg.text_splitter.embedding_model,
+        )
