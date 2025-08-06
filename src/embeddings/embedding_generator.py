@@ -3,18 +3,15 @@ import os
 import re
 from typing import Dict, List, Optional
 
-import torch
-from chromadb.utils.embedding_functions import OpenCLIPEmbeddingFunction
 from langchain.docstore.document import Document
 from langchain.text_splitter import (
     RecursiveCharacterTextSplitter,
     SentenceTransformersTokenTextSplitter,
 )
-from langchain_chroma import Chroma
+from langchain_chroma.vectorstores import Chroma
+from langchain_experimental.open_clip import OpenCLIPEmbeddings
 from langchain_experimental.text_splitter import SemanticChunker
-from langchain_huggingface import HuggingFaceEmbeddings
 from omegaconf import DictConfig
-from utils.general_utils import load_embedding_model
 
 
 class GenerateEmbeddings:
@@ -28,30 +25,47 @@ class GenerateEmbeddings:
     ) -> None:
         self.cfg = cfg
         self.documents = documents
+        self.image_paths = image_paths
+        self.metadata_list = metadata_list
         self.logger: logging.Logger = logger or logging.getLogger(__name__)
-        self.device: str = "cuda" if torch.cuda.is_available() else "cpu"
-        self.embedding_function = OpenCLIPEmbeddingFunction(
+        self.clip = OpenCLIPEmbeddings(
             model_name=self.cfg.embeddings.model_name,
             checkpoint=self.cfg.embeddings.checkpoint,
-            device=self.device,
+            model=None,
+            preprocess=None,
+            tokenizer=None,
         )
+
         self.cfg.embeddings.model_name_cleaned = re.sub(
             r'[<>:"/\\|?*]', "_", self.cfg.embeddings.model_name
         )
         self.persist_directory: str = os.path.join(
-            self.cfg.text_embeddings.embeddings_path,
+            self.cfg.embeddings.embeddings_path,
             self.cfg.text_splitter.name,
             self.cfg.embeddings.model_name_cleaned,
         )
-
         os.makedirs(self.persist_directory, exist_ok=True)
 
-    def _split_text(self, embedding_model: HuggingFaceEmbeddings) -> List[Document]:
+        self.chroma = Chroma(
+            collection_name="GOT",
+            embedding_function=self.clip,
+            persist_directory=self.persist_directory,
+        )
+
+    def _split_text(
+        self,
+    ) -> (
+        RecursiveCharacterTextSplitter
+        | SentenceTransformersTokenTextSplitter
+        | SemanticChunker
+    ):
         self.logger.info(f"Using {self.cfg.text_splitter.name.replace('_', ' ')}.\n")
 
         if self.cfg.text_splitter.name.lower() == "recursive_character_text_splitter":
             text_splitter = RecursiveCharacterTextSplitter(
-                **self.cfg.text_splitter.text_splitter
+                separators=self.cfg.text_splitter.separators,
+                chunk_size=self.cfg.text_splitter.chunk_size,
+                chunk_overlap=self.cfg.text_splitter.chunk_overlap,
             )
 
         elif (
@@ -59,42 +73,29 @@ class GenerateEmbeddings:
             == "sentence_transformers_token_text_splitter"
         ):
             text_splitter = SentenceTransformersTokenTextSplitter(
-                model_name=self.cfg.embeddings.embeddings_model.model_name,
-                chunk_overlap=self.cfg.text_splitter.text_splitter.chunk_overlap,
+                model_name=self.cfg.text_splitter.model_name,
+                chunk_overlap=self.cfg.text_splitter.chunk_overlap,
             )
 
         elif self.cfg.text_splitter.name.lower() == "semantic_chunker":
             text_splitter = SemanticChunker(
-                embeddings=embedding_model,
-                breakpoint_threshold_type=self.cfg.text_splitter.text_splitter.breakpoint_threshold_type,
+                embeddings=self.cfg.text_splitter.model_name,
+                breakpoint_threshold_type=self.cfg.text_splitter.breakpoint_threshold_type,
             )
         else:
             raise ValueError(f"Unknown text splitter: {self.cfg.text_splitter.name}.")
 
-        documents = text_splitter.split_documents(self.documents)
-        self.logger.info(f"Text split into {len(documents)} parts.")
-
-        return documents
-
-    def _embed_documents(
-        self,
-        embedding_model: HuggingFaceEmbeddings,
-        documents: List[Document],
-    ):
-        self.logger.info(
-            f"Generating Embeddings, it will be save at {self.persist_directory}."
-        )
-
-        Chroma.from_documents(
-            documents=documents,
-            embedding=embedding_model,
-            persist_directory=self.persist_directory,
-        )
-
-        self.logger.info("Successfully generated and saved Vector Embeddings.")
+        return text_splitter
 
     def generate_vectordb(self):
         self.logger.info("Generating Embeddings.")
-        embedding_model = load_embedding_model(
-            model_name=self.cfg.text_splitter.embedding_model,
+        image_ids = [f"image_{i}" for i in range(len(self.image_paths))]
+        self.chroma.add_images(
+            ids=image_ids,
+            uris=self.image_paths,
+            metadatas=self.metadata_list,
         )
+        text_splitter = self._split_text()
+        texts = text_splitter.split_documents(documents=self.documents)
+        text_ids = [f"text_{i}" for i in range(len(texts))]
+        self.chroma.add_documents(ids=text_ids, documents=texts)
