@@ -1,12 +1,4 @@
-# Name of the text splitter strategy being used
 name: "recursive_character_text_splitter"
-
-text_splitter:
-  # List of separators used to split the text hierarchically (e.g., by paragraphs)
-  separators: ["\n\n"]
-
-  # Maximum number of characters in each text chunk
-  chunk_size: 500
-
-  # Number of overlapping characters between consecutive chunks
-  chunk_overlap: 50
+separators: ["\n\n"]
+chunk_size: 500
+chunk_overlap: 50
