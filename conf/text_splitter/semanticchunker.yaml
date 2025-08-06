@@ -1,5 +1,3 @@
 name: "semantic_chunker"
-
-text_splitter:
-  breakpoint_threshold_type: "percentile"
-  embedding_model: "all-MiniLM-L6-v2"
+embedding_model: "all-MiniLM-L6-v2"
+breakpoint_threshold_type: "percentile"
