@@ -1,4 +1,4 @@
-path: "./data/datasets/"
+path: "./data/datasets/books/"
 file_extension: ".epub"
 
 whitespace: r"\s+"
