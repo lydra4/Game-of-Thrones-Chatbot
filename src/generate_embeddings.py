@@ -10,7 +10,7 @@ import logging
 import os
 
 import hydra
-from embeddings.text_embeddings import TextEmbeddings
+from embeddings.embedding_generator import GenerateEmbeddings
 from preprocessing.epub_processor import EPUBProcessor
 from utils.general_utils import setup_logging
 
@@ -41,8 +41,12 @@ def main(cfg):
         epub_processor.load()
     )
 
-    perform_embeddings = TextEmbeddings(
-        cfg=cfg, logger=logger, documents=extracted_documents
+    perform_embeddings = GenerateEmbeddings(
+        cfg=cfg,
+        logger=logger,
+        documents=extracted_documents,
+        image_paths=all_saved_image_paths,
+        metadata_list=all_metadata_list,
     )
     perform_embeddings.generate_vectordb()
 
