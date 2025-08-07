@@ -11,6 +11,7 @@ from langchain.text_splitter import (
 from langchain_chroma.vectorstores import Chroma
 from langchain_experimental.open_clip import OpenCLIPEmbeddings
 from langchain_experimental.text_splitter import SemanticChunker
+from langchain_huggingface import HuggingFaceEmbeddings
 from omegaconf import DictConfig
 
 
@@ -36,17 +37,17 @@ class GenerateEmbeddings:
             tokenizer=None,
         )
 
-        self.cfg.embeddings.model_name_cleaned = re.sub(
+        model_name_cleaned = re.sub(
             r'[<>:"/\\|?*]', "_", self.cfg.embeddings.model_name
         )
         self.persist_directory: str = os.path.join(
             self.cfg.embeddings.embeddings_path,
             self.cfg.text_splitter.name,
-            self.cfg.embeddings.model_name_cleaned,
+            model_name_cleaned,
         )
         os.makedirs(self.persist_directory, exist_ok=True)
 
-        self.chroma = Chroma(
+        self.chroma: Chroma = Chroma(
             collection_name="GOT",
             embedding_function=self.clip,
             persist_directory=self.persist_directory,
@@ -78,8 +79,11 @@ class GenerateEmbeddings:
             )
 
         elif self.cfg.text_splitter.name.lower() == "semantic_chunker":
+            embeddings = HuggingFaceEmbeddings(
+                model_name=self.cfg.text_splitter.model_name,
+            )
             text_splitter = SemanticChunker(
-                embeddings=self.cfg.text_splitter.model_name,
+                embeddings=embeddings,
                 breakpoint_threshold_type=self.cfg.text_splitter.breakpoint_threshold_type,
             )
         else:
@@ -87,15 +91,40 @@ class GenerateEmbeddings:
 
         return text_splitter
 
-    def generate_vectordb(self):
-        self.logger.info("Generating Embeddings.")
-        image_ids = [f"image_{i}" for i in range(len(self.image_paths))]
-        self.chroma.add_images(
-            ids=image_ids,
-            uris=self.image_paths,
-            metadatas=self.metadata_list,
-        )
-        text_splitter = self._split_text()
-        texts = text_splitter.split_documents(documents=self.documents)
+    def _embed_text(
+        self,
+        documents: List[Document],
+        text_splitter,
+        chroma_db: Chroma,
+    ):
+        self.logger.info("Embedding text")
+        texts = text_splitter.split_documents(documents=documents)
         text_ids = [f"text_{i}" for i in range(len(texts))]
-        self.chroma.add_documents(ids=text_ids, documents=texts)
+        chroma_db.add_documents(ids=text_ids, documents=texts)
+
+    def _embed_images(
+        self,
+        images_path: List[str],
+        metadata_list: List[Dict[str, str]],
+        chroma_db: Chroma,
+    ):
+        self.logger.info("Embedding images")
+        image_ids = [f"image_{i}" for i in range(len(images_path))]
+        chroma_db.add_images(
+            ids=image_ids,
+            uris=images_path,
+            metadatas=metadata_list,
+        )
+
+    def generate_vectordb(self):
+        text_splitter = self._split_text()
+        self._embed_text(
+            documents=self.documents,
+            text_splitter=text_splitter,
+            chroma_db=self.chroma,
+        )
+        self._embed_images(
+            images_path=self.image_paths,
+            metadata_list=self.metadata_list,
+            chroma_db=self.chroma,
+        )
