@@ -60,7 +60,9 @@ class GenerateEmbeddings:
         | SentenceTransformersTokenTextSplitter
         | SemanticChunker
     ):
-        self.logger.info(f"Using {self.cfg.text_splitter.name.replace('_', ' ')}.\n")
+        self.logger.info(
+            f"Using {self.cfg.text_splitter.name.replace('_', ' ')} to embed text."
+        )
 
         if self.cfg.text_splitter.name.lower() == "recursive_character_text_splitter":
             text_splitter = RecursiveCharacterTextSplitter(
@@ -101,6 +103,7 @@ class GenerateEmbeddings:
         texts = text_splitter.split_documents(documents=documents)
         text_ids = [f"text_{i}" for i in range(len(texts))]
         chroma_db.add_documents(ids=text_ids, documents=texts)
+        self.logger.info("Successfully embedded text.")
 
     def _embed_images(
         self,
@@ -115,16 +118,17 @@ class GenerateEmbeddings:
             uris=images_path,
             metadatas=metadata_list,
         )
+        self.logger.info("Successfully embedded images.")
 
     def generate_vectordb(self):
+        self._embed_images(
+            images_path=self.image_paths,
+            metadata_list=self.metadata_list,
+            chroma_db=self.chroma,
+        )
         text_splitter = self._split_text()
         self._embed_text(
             documents=self.documents,
             text_splitter=text_splitter,
-            chroma_db=self.chroma,
-        )
-        self._embed_images(
-            images_path=self.image_paths,
-            metadata_list=self.metadata_list,
             chroma_db=self.chroma,
         )
