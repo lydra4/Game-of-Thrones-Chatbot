@@ -49,7 +49,7 @@ class EPUBProcessor:
         epub_path: str,
     ) -> Tuple[str, List[str], List[Dict[str, str]]]:
         book_name = os.path.splitext(os.path.basename(epub_path))[0]
-        output_dir = os.path.join(self.cfg.image_embeddings.out_dir, book_name)
+        output_dir = os.path.join(self.cfg.embeddings.output_dir, "images", book_name)
         os.makedirs(output_dir, exist_ok=True)
 
         all_text: List[str] = []
@@ -125,7 +125,7 @@ class EPUBProcessor:
                 )
                 all_saved_image_paths.extend(saved_image_paths)
                 all_metadata_list.extend(metadata_list)
-                self.logger.info("Successfull!\n")
+                self.logger.info(f"Successfully processed {book_name}.")
 
             except Exception as e:
                 self.logger.error(f"Error Processing {book_name}: {e}", exc_info=True)
