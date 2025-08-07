@@ -107,7 +107,7 @@ class EPUBProcessor:
             )
         for epub_file in epub_files:
             book_name = os.path.splitext(os.path.basename(epub_file))[0]
-            self.logger.info(f"Processing {book_name}")
+            self.logger.info(f"Processing '{book_name}'")
 
             try:
                 processed_text, saved_image_paths, metadata_list = (
@@ -125,10 +125,12 @@ class EPUBProcessor:
                 )
                 all_saved_image_paths.extend(saved_image_paths)
                 all_metadata_list.extend(metadata_list)
-                self.logger.info(f"Successfully processed {book_name}.")
+                self.logger.info(f"Successfully processed '{book_name}'.")
 
             except Exception as e:
-                self.logger.error(f"Error Processing {book_name}: {e}", exc_info=True)
+                self.logger.error(
+                    f"Error Processing '{book_name}': '{e}'", exc_info=True
+                )
 
         if not extracted_documents:
             raise ValueError(
