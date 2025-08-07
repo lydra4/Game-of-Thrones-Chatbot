@@ -13,6 +13,7 @@ from langchain_experimental.open_clip import OpenCLIPEmbeddings
 from langchain_experimental.text_splitter import SemanticChunker
 from langchain_huggingface import HuggingFaceEmbeddings
 from omegaconf import DictConfig
+from tqdm import tqdm
 
 
 class GenerateEmbeddings:
@@ -55,13 +56,10 @@ class GenerateEmbeddings:
 
     def _split_text(
         self,
-    ) -> (
-        RecursiveCharacterTextSplitter
-        | SentenceTransformersTokenTextSplitter
-        | SemanticChunker
-    ):
+        documents: List[Document],
+    ) -> List[Document]:
         self.logger.info(
-            f"Using {self.cfg.text_splitter.name.replace('_', ' ')} to embed text."
+            f"Using {self.cfg.text_splitter.name.replace('_', ' ')} to split text."
         )
 
         if self.cfg.text_splitter.name.lower() == "recursive_character_text_splitter":
@@ -91,18 +89,37 @@ class GenerateEmbeddings:
         else:
             raise ValueError(f"Unknown text splitter: {self.cfg.text_splitter.name}.")
 
-        return text_splitter
+        texts = text_splitter.split_documents(documents=documents)
+        self.logger.info(f"Successfully split text, number of chunks: {len(texts)}")
+
+        return texts
+
+    def _batch_insert(
+        self,
+        insert_fn,
+        items: Dict[str, List],
+        batch_size: int = 1_000,
+    ):
+        total_items = len(items["ids"])
+        for i in tqdm(range(0, total_items, batch_size)):
+            batch = {key: value[i : (i + batch_size)] for key, value in items.items()}
+            insert_fn(**batch)
 
     def _embed_text(
         self,
-        documents: List[Document],
-        text_splitter,
+        texts: List[Document],
         chroma_db: Chroma,
     ):
         self.logger.info("Embedding text")
-        texts = text_splitter.split_documents(documents=documents)
         text_ids = [f"text_{i}" for i in range(len(texts))]
-        chroma_db.add_documents(ids=text_ids, documents=texts)
+        self._batch_insert(
+            insert_fn=chroma_db.add_documents,
+            items={
+                "ids": text_ids,
+                "documents": texts,
+            },
+            batch_size=self.cfg.embeddings.batch_size,
+        )
         self.logger.info("Successfully embedded text.")
 
     def _embed_images(
@@ -113,10 +130,14 @@ class GenerateEmbeddings:
     ):
         self.logger.info("Embedding images")
         image_ids = [f"image_{i}" for i in range(len(images_path))]
-        chroma_db.add_images(
-            ids=image_ids,
-            uris=images_path,
-            metadatas=metadata_list,
+        self._batch_insert(
+            insert_fn=chroma_db.add_images,
+            items={
+                "ids": image_ids,
+                "uris": images_path,
+                "metadatas": metadata_list,
+            },
+            batch_size=self.cfg.embeddings.batch_size,
         )
         self.logger.info("Successfully embedded images.")
 
@@ -126,9 +147,8 @@ class GenerateEmbeddings:
             metadata_list=self.metadata_list,
             chroma_db=self.chroma,
         )
-        text_splitter = self._split_text()
+        texts = self._split_text(documents=self.documents)
         self._embed_text(
-            documents=self.documents,
-            text_splitter=text_splitter,
+            texts=texts,
             chroma_db=self.chroma,
         )
