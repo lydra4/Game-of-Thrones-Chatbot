@@ -1,44 +1,34 @@
 import locale
 import logging
 import os
-from typing import Optional
+from typing import Optional, Union
 
 import omegaconf
 from dotenv import load_dotenv
 from langchain.chains.retrieval_qa.base import RetrievalQA
-from langchain.prompts.prompt import PromptTemplate
 from langchain.retrievers import MultiQueryRetriever
 from langchain.retrievers.contextual_compression import ContextualCompressionRetriever
 from langchain_chroma.vectorstores import Chroma
 from langchain_cohere import CohereRerank
-from langchain_community.embeddings import HuggingFaceInstructEmbeddings
+from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_experimental.open_clip import OpenCLIPEmbeddings
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai.chat_models import ChatOpenAI
 from langfuse import Langfuse
 from langfuse.callback import CallbackHandler
 from ragas import EvaluationDataset
+from utils.general_utils import get_api_key
 
 
 class InferencePipeline:
     def __init__(
         self, cfg: omegaconf.DictConfig, logger: Optional[logging.Logger] = None
     ) -> None:
+        load_dotenv()
+
         self.cfg = cfg
         self.logger = logger or logging.getLogger(__name__)
-        self.clip = OpenCLIPEmbeddings(
-            model_name=self.cfg.embeddings.model_name,
-            checkpoint=self.cfg.embeddings.checkpoint,
-            model=None,
-            preprocess=None,
-            tokenizer=None,
-        )
-        self.chroma = Chroma(
-            persist_directory=self.cfg.persist_directory,
-            embedding_function=self.clip,
-        )
 
-        load_dotenv()
         self.langfuse = Langfuse(
             secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
             public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
@@ -46,72 +36,62 @@ class InferencePipeline:
         )
         self.langfuse_handler = CallbackHandler()
 
-        self.embedding_model: Optional[HuggingFaceInstructEmbeddings] = None
-        self.vectordb: Optional[FAISS] = None
-        self.llm: Optional[ChatOpenAI] = None
-        self.retriever = None
-        self.qa_chain = None
-        self.qns_list: Optional[list] = None
-        self.ans_list: Optional[list] = None
-        self.answer_file: Optional[str] = None
-        self.cleaned_text_splitter: Optional[str] = None
+    def _init_clip_embeddings(
+        self,
+        model_name: str,
+        checkpoint: str,
+        model: Optional[str] = None,
+        preprocess: Optional[str] = None,
+        tokenizer: Optional[str] = None,
+    ) -> OpenCLIPEmbeddings:
+        return OpenCLIPEmbeddings(
+            model_name=model_name,
+            checkpoint=checkpoint,
+            model=model,
+            preprocess=preprocess,
+            tokenizer=tokenizer,
+        )
 
-    def _load_prompt(
-        self, path: str, input_variables: Optional[list] = None
-    ) -> PromptTemplate:
-        file_name = os.path.basename(path)
-        self.logger.info(f"Loading Prompt Template: {file_name}.\n")
+    def _init_vector_store(
+        self,
+        persist_directory: str,
+        embedding_function,
+    ) -> Chroma:
+        return Chroma(
+            persist_directory=persist_directory,
+            embedding_function=embedding_function,
+        )
 
-        try:
-            with open(
-                file=path,
-                mode="r",
-                encoding="utf-8",
-            ) as f:
-                template = f.read()
-
-            prompt = PromptTemplate(
-                template=template, input_variables=input_variables or []
-            )
-            self.logger.info(f"{file_name} loaded successfully.\n")
-
-            return prompt
-
-        except Exception as e:
-            self.logger.error(f"Failed to load {file_name}: {e}")
-            raise
-
-    def _initialize_llm(self) -> None:
-        load_dotenv()
-
-        model = self.cfg.llm.model
-        temperature = self.cfg.llm.temperature
-        api_key_env_var = "OPENAI_API_KEY" if "gpt-" in model else "GEMINI_API_KEY"
-        api_key = os.getenv(api_key_env_var)
-
-        if not api_key:
-            raise ValueError(f"{api_key_env_var} not found in enviroment variables.")
-
+    def _init_llm(
+        self,
+        model: str,
+        temperature: Union[int, float],
+    ) -> BaseChatModel:
         self.logger.info(f"Initializing {model}.\n")
 
         try:
             if "gpt-" in model:
-                self.llm = ChatOpenAI(
-                    model=model, temperature=temperature, api_key=api_key
+                llm = ChatOpenAI(
+                    model=model,
+                    temperature=temperature,
+                    api_key=get_api_key(env_var="OPENAI_API_KEY"),
                 )
 
             elif "gemini" in model:
-                self.llm = ChatGoogleGenerativeAI(
-                    model=model, temperature=temperature, api_key=api_key
+                llm = ChatGoogleGenerativeAI(
+                    model=model,
+                    temperature=temperature,
+                    api_key=get_api_key(env_var="GEMINI_API_KEY"),
                 )
 
             else:
                 raise ValueError(f"Unsupported model: {model}")
 
-            self.logger.info(f"LLM successfully initialized with model: {model}.\n")
+            self.logger.info(f"{model} successfully initialized.")
+            return llm
 
         except Exception as e:
-            self.logger.error(f"Failed to initialize {model}: {e}")
+            self.logger.error(f"Failed to {model}: {e}")
             raise
 
     def _create_retriever(self) -> None:
