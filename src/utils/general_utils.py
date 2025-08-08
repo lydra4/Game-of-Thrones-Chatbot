@@ -39,3 +39,10 @@ def load_embedding_model(model_name: str, show_progress: bool = True, **kwargs):
         raise ValueError(e)
     logger.info("Embedding model loaded.")
     return embedding_model
+
+
+def get_api_key(env_var: str) -> str:
+    api_key = os.getenv(key=env_var)
+    if not api_key:
+        raise ValueError(f"Missing enviroment variable:{env_var}")
+    return api_key
