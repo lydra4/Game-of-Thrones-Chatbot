@@ -1,11 +1,13 @@
 import locale
 import logging
 import os
+from concurrent.futures import ThreadPoolExecutor
 from typing import Optional, Union
 
 import omegaconf
 from dotenv import load_dotenv
 from langchain.chains.retrieval_qa.base import RetrievalQA
+from langchain.prompts.prompt import PromptTemplate
 from langchain.retrievers import MultiQueryRetriever
 from langchain.retrievers.contextual_compression import ContextualCompressionRetriever
 from langchain_chroma.vectorstores import Chroma
@@ -214,11 +216,24 @@ class InferencePipeline:
 
         return EvaluationDataset.from_list(data=data_list), len(self.qns_list)
 
-    def run_inference(self) -> EvaluationDataset:
-        self.load_embedding_model()
-        self._load_vectordb()
-        self._initialize_llm()
-        self._create_retriever()
-        self._create_qa_chain()
-        self._open_questions()
-        return self._infer()
+    def run_inference(self, query: str) -> EvaluationDataset:
+        embedding_function = self._init_clip_embeddings(
+            model_name=self.cfg.embeddings.model_name,
+            checkpoint=self.cfg.embeddings.checkpoint,
+        )
+        prompt_template = PromptTemplate()
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            future_vector = executor.submit(
+                self._init_vector_store,
+                persist_directory=self.cfg.persist_directory,
+                embedding_function=embedding_function,
+            )
+            future_llm = executor.submit(
+                self._init_llm,
+                model=self.cfg.model,
+                temperature=self.cfg.temperature,
+            )
+
+            vector_store = future_vector.result()
+            llm = future_llm.result()
