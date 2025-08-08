@@ -19,9 +19,10 @@ def main(cfg):
     """Main function to set up logging and execute the inference pipeline.
 
     Args:
-        cfg (omegaconf.DictConfig): Hydra configuration object containing
-            all necessary parameters for inference.
+            cfg (omegaconf.DictConfig): Hydra configuration object containing
+                        all necessary parameters for inference.
     """
+    print(cfg)
     logger = logging.getLogger(__name__)
     logger.info("Setting up logging configuration")
     setup_logging(
