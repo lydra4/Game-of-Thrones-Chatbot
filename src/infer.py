@@ -31,8 +31,10 @@ def main(cfg):
         )
     )
 
+    query = "Does Robb Stark Die?"
+
     infer_pipeline = InferencePipeline(cfg=cfg, logger=logger)
-    infer_pipeline.run_inference()
+    infer_pipeline.run_inference(query=query)
 
 
 if __name__ == "__main__":
